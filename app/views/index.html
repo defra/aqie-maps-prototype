@@ -3,11 +3,25 @@
 {% set pageName = "Home" %}
 
 {% block head %}
-  {{ super() }}
-  <link href="/plugin-assets/%40defra%2Finteractive-map/dist/css/index.css" rel="stylesheet" type="text/css">
+{{ super() }}
+<link href="/plugin-assets/%40defra%2Finteractive-map/dist/css/index.css" rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <div id="backend-banner"
+      style="border-left: 5px solid {{ '#00703c' if backendConnected else '#d4351c' }}; padding: 15px 20px; background: {{ '#f3faf3' if backendConnected else '#fff5f5' }}; margin-bottom: 30px;">
+      <p class="govuk-body govuk-!-margin-bottom-0">
+        <strong>aqie-back-end</strong> &mdash; <code id="backend-url">{{ backendUrl }}</code>
+        <strong id="backend-tag"
+          class="govuk-tag {% if backendConnected %}govuk-tag--green{% else %}govuk-tag--red{% endif %} govuk-!-margin-left-2">{%
+          if backendConnected %}Connected{% else %}Not Connected{% endif %}</strong>
+      </p>
+    </div>
+  </div>
+</div>
+
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
     {% include "govuk-prototype-kit/includes/homepage-top.njk" %}
@@ -16,7 +30,15 @@
       {{ serviceName }}
     </h1>
 
-    {% include "govuk-prototype-kit/includes/homepage-bottom.njk" %}
+    <details class="govuk-details" id="stations-details">
+      <summary class="govuk-details__summary">
+        <span class="govuk-details__summary-text" id="stations-summary">Monitoring stations <span
+            id="stations-count"></span></span>
+      </summary>
+      <div class="govuk-details__text" id="stations-content">
+        <p class="govuk-body" id="stations-loading">Loading&hellip;</p>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -24,21 +46,161 @@
 {% endblock %}
 
 {% block pageScripts %}
-  <script src="/plugin-assets/%40defra%2Finteractive-map/dist/umd/index.js"></script>
-  <script src="/plugin-assets/%40defra%2Finteractive-map/providers/maplibre/dist/umd/index.js"></script>
-  <script>
-    const interactiveMap = new defra.InteractiveMap('map', {
-      mapProvider: defra.maplibreProvider(),
-      behaviour: 'hybrid',
-      mapLabel: 'Ambleside',
-      zoom: 14,
-      center: [-2.968, 54.425],
-      containerHeight: '650px',
-      mapStyle: {
-        url: 'https://tiles.openfreemap.org/styles/liberty',
-        attribution: 'OpenFreeMap © OpenMapTiles Data from OpenStreetMap',
-        backgroundColor: '#f5f5f0'
+<script>
+  ; (function () {
+    function updateBanner(connected, url) {
+      var banner = document.getElementById('backend-banner')
+      var tag = document.getElementById('backend-tag')
+      var urlEl = document.getElementById('backend-url')
+      if (!banner || !tag) return
+      if (connected) {
+        banner.style.borderLeftColor = '#00703c'
+        banner.style.background = '#f3faf3'
+        tag.className = 'govuk-tag govuk-tag--green govuk-!-margin-left-2'
+        tag.textContent = 'Connected'
+      } else {
+        banner.style.borderLeftColor = '#d4351c'
+        banner.style.background = '#fff5f5'
+        tag.className = 'govuk-tag govuk-tag--red govuk-!-margin-left-2'
+        tag.textContent = 'Not Connected'
       }
-    })
-  </script>
+      if (urlEl && url) urlEl.textContent = url
+    }
+
+    function poll() {
+      fetch('/api/health')
+        .then(function (r) { return r.json() })
+        .then(function (data) { updateBanner(data.connected, data.url) })
+        .catch(function () { updateBanner(false) })
+    }
+
+    setInterval(poll, 3000)
+
+    // Load station list asynchronously so the page doesn't block
+    fetch('/monitoringStationInfo', { signal: AbortSignal.timeout(90000) })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (body) { throw new Error(body.error || 'Status ' + r.status) })
+        return r.json()
+      })
+      .then(function (stations) {
+        var list = Array.isArray(stations) ? stations
+          : Array.isArray(stations.measurements) ? stations.measurements
+            : Array.isArray(stations.data) ? stations.data
+              : Array.isArray(stations.stations) ? stations.stations
+                : Array.isArray(stations.results) ? stations.results
+                  : null
+        if (!list) {
+          throw new Error('Unexpected response shape: ' + JSON.stringify(stations).slice(0, 120))
+        }
+        var count = document.getElementById('stations-count')
+        var content = document.getElementById('stations-content')
+        if (count) count.textContent = '(' + list.length + ')'
+        if (content) {
+          // Group stations by area
+          var areas = {}
+          list.forEach(function (s) {
+            var area = s.area || 'Other'
+            if (!areas[area]) areas[area] = []
+            areas[area].push(s)
+          })
+
+          var fragment = document.createDocumentFragment()
+          Object.keys(areas).sort().forEach(function (areaName) {
+            var details = document.createElement('details')
+            details.className = 'govuk-details govuk-!-margin-bottom-2'
+
+            var summary = document.createElement('summary')
+            summary.className = 'govuk-details__summary'
+            var summaryText = document.createElement('span')
+            summaryText.className = 'govuk-details__summary-text'
+            summaryText.textContent = areaName + ' (' + areas[areaName].length + ')'
+            summary.appendChild(summaryText)
+            details.appendChild(summary)
+
+            var div = document.createElement('div')
+            div.className = 'govuk-details__text'
+            var ul = document.createElement('ul')
+            ul.className = 'govuk-list govuk-list--bullet'
+
+            areas[areaName].forEach(function (s) {
+              var li = document.createElement('li')
+              if (s.location && Array.isArray(s.location.coordinates)) {
+                var btn = document.createElement('button')
+                btn.className = 'govuk-link'
+                btn.style.cssText = 'background:none;border:none;padding:0;cursor:pointer;font:inherit'
+                btn.textContent = s.name
+                btn.addEventListener('click', function () {
+                  window.navigateToStation(s)
+                })
+                li.appendChild(btn)
+              } else {
+                li.textContent = s.name
+              }
+              ul.appendChild(li)
+            })
+
+            div.appendChild(ul)
+            details.appendChild(div)
+            fragment.appendChild(details)
+          })
+
+          content.innerHTML = ''
+          content.appendChild(fragment)
+        }
+      })
+      .catch(function (err) {
+        var msg = (err.name === 'TimeoutError' || err.name === 'AbortError')
+          ? 'Connection timeout'
+          : err.message
+        var content = document.getElementById('stations-content')
+        if (content) content.innerHTML = '<p class="govuk-body">Could not load monitoring stations: <code>' + msg + '</code></p>'
+      })
+  })()
+</script>
+<script src="/plugin-assets/%40defra%2Finteractive-map/dist/umd/index.js"></script>
+<script src="/plugin-assets/%40defra%2Finteractive-map/providers/maplibre/dist/umd/index.js"></script>
+<script>
+  window.interactiveMap = new defra.InteractiveMap('map', {
+    mapProvider: defra.maplibreProvider(),
+    behaviour: 'hybrid',
+    mapLabel: 'United Kingdom',
+    zoom: 5.4842222,
+    center: [-1.4649, 52.5619],
+    containerHeight: '650px',
+    mapStyle: {
+      url: 'https://tiles.openfreemap.org/styles/liberty',
+      attribution: 'OpenFreeMap © OpenMapTiles Data from OpenStreetMap',
+      backgroundColor: '#f5f5f0'
+    }
+  })
+
+  var _mapReady = false
+  var _pendingNav = null
+
+  window.interactiveMap.on('map:ready', function () {
+    _mapReady = true
+    if (_pendingNav) {
+      _doNavigate(_pendingNav)
+      _pendingNav = null
+    }
+  })
+
+  function _doNavigate(coords) {
+    window.interactiveMap.removeMarker('station')
+    window.interactiveMap.addMarker('station', coords)
+    window.interactiveMap.setView({ center: coords, zoom: 14 })
+  }
+
+  // API returns coordinates as [lat, lng] strings; map needs [lng, lat] numbers
+  window.navigateToStation = function (station) {
+    var raw = station.location.coordinates
+    var coords = [parseFloat(raw[1]), parseFloat(raw[0])]
+    if (_mapReady) {
+      _doNavigate(coords)
+    } else {
+      _pendingNav = coords
+      window.interactiveMap.open()
+    }
+  }
+</script>
 {% endblock %}
