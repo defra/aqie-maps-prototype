@@ -43,6 +43,12 @@
 </div>
 
 <div id="map"></div>
+<div id="station-panel" class="govuk-inset-text" style="display:none;margin-top:0;position:relative;">
+  <button id="sp-close" class="govuk-link" style="position:absolute;top:10px;right:15px;background:none;border:none;cursor:pointer;font:inherit;">&#10005; Close</button>
+  <h3 class="govuk-heading-s govuk-!-margin-bottom-1" id="sp-name"></h3>
+  <p class="govuk-body-s govuk-!-margin-bottom-0" id="sp-area"></p>
+  <p class="govuk-body-s govuk-!-margin-bottom-0" id="sp-type"></p>
+</div>
 {% endblock %}
 
 {% block pageScripts %}
@@ -92,6 +98,7 @@
         if (!list) {
           throw new Error('Unexpected response shape: ' + JSON.stringify(stations).slice(0, 120))
         }
+        if (window._onStationsLoaded) window._onStationsLoaded(list)
         var count = document.getElementById('stations-count')
         var content = document.getElementById('stations-content')
         if (count) count.textContent = '(' + list.length + ')'
@@ -175,30 +182,96 @@
   })
 
   var _mapReady = false
+  var _stationList = null
+  var _selectedId = null
   var _pendingNav = null
+
+  // Called from the station fetch once the list is available
+  window._onStationsLoaded = function (list) {
+    _stationList = list
+    if (_mapReady) _plotAllMarkers()
+  }
 
   window.interactiveMap.on('map:ready', function () {
     _mapReady = true
+    if (_stationList) _plotAllMarkers()
     if (_pendingNav) {
-      _doNavigate(_pendingNav)
+      _highlightStation(_pendingNav)
       _pendingNav = null
     }
   })
 
-  function _doNavigate(coords) {
-    window.interactiveMap.removeMarker('station')
-    window.interactiveMap.addMarker('station', coords)
-    window.interactiveMap.setView({ center: coords, zoom: 14 })
+  // API returns coordinates as [lat, lng] strings; map needs [lng, lat] numbers
+  function _stationCoords (station) {
+    var raw = station.location.coordinates
+    return [parseFloat(raw[1]), parseFloat(raw[0])]
   }
 
-  // API returns coordinates as [lat, lng] strings; map needs [lng, lat] numbers
+  function _plotAllMarkers () {
+    _stationList.forEach(function (s) {
+      if (!s.location || !Array.isArray(s.location.coordinates)) return
+      window.interactiveMap.addMarker('ms-' + s.localSiteID, _stationCoords(s), {
+        symbol: 'circle',
+        backgroundColor: '#1d70b8'
+      })
+    })
+  }
+
+  function _highlightStation (station) {
+    // Restore the previously highlighted marker to normal style
+    if (_selectedId && _stationList) {
+      var prev = _stationList.find(function (s) { return 'ms-' + s.localSiteID === _selectedId })
+      if (prev) {
+        window.interactiveMap.addMarker(_selectedId, _stationCoords(prev), {
+          symbol: 'circle',
+          backgroundColor: '#1d70b8'
+        })
+      }
+    }
+    _selectedId = 'ms-' + station.localSiteID
+    window.interactiveMap.addMarker(_selectedId, _stationCoords(station), {
+      symbol: 'pin',
+      backgroundColor: '#d4351c'
+    })
+    _showStationPanel(station)
+  }
+
+  function _showStationPanel (station) {
+    var panel = document.getElementById('station-panel')
+    if (!panel) return
+    document.getElementById('sp-name').textContent = station.name || ''
+    document.getElementById('sp-area').textContent = station.area || ''
+    document.getElementById('sp-type').textContent = station.areaType || ''
+    panel.style.display = 'block'
+  }
+
+  document.getElementById('sp-close').addEventListener('click', function () {
+    document.getElementById('station-panel').style.display = 'none'
+  })
+
+  // MAP_CLICK: highlight the nearest station if the click is within ~0.1 degrees
+  window.interactiveMap.on('map:click', function (evt) {
+    if (!_stationList || !evt || !evt.coords) return
+    var clickLng = evt.coords[0]
+    var clickLat = evt.coords[1]
+    var best = null
+    var bestDist = Infinity
+    _stationList.forEach(function (s) {
+      if (!s.location || !Array.isArray(s.location.coordinates)) return
+      var lat = parseFloat(s.location.coordinates[0])
+      var lng = parseFloat(s.location.coordinates[1])
+      var d = (lng - clickLng) * (lng - clickLng) + (lat - clickLat) * (lat - clickLat)
+      if (d < bestDist) { bestDist = d; best = s }
+    })
+    // sqrt(0.01) ≈ 0.1 degrees ≈ 11 km — reasonable click target at mid zoom
+    if (best && bestDist < 0.01) _highlightStation(best)
+  })
+
   window.navigateToStation = function (station) {
-    var raw = station.location.coordinates
-    var coords = [parseFloat(raw[1]), parseFloat(raw[0])]
     if (_mapReady) {
-      _doNavigate(coords)
+      _highlightStation(station)
     } else {
-      _pendingNav = coords
+      _pendingNav = station
       window.interactiveMap.open()
     }
   }
