@@ -45,9 +45,8 @@
 <div id="map"></div>
 <div id="station-panel" class="govuk-inset-text" style="display:none;margin-top:0;position:relative;">
   <button id="sp-close" class="govuk-link" style="position:absolute;top:10px;right:15px;background:none;border:none;cursor:pointer;font:inherit;">&#10005; Close</button>
-  <h3 class="govuk-heading-s govuk-!-margin-bottom-1" id="sp-name"></h3>
-  <p class="govuk-body-s govuk-!-margin-bottom-0" id="sp-area"></p>
-  <p class="govuk-body-s govuk-!-margin-bottom-0" id="sp-type"></p>
+  <h3 class="govuk-heading-s govuk-!-margin-bottom-2" id="sp-name"></h3>
+  <dl class="govuk-summary-list govuk-summary-list--no-border govuk-!-font-size-16" id="sp-details"></dl>
 </div>
 {% endblock %}
 
@@ -183,8 +182,21 @@
 
   var _mapReady = false
   var _stationList = null
+  var _forecastList = null
   var _selectedId = null
   var _pendingNav = null
+
+  // Fetch forecasts in parallel — used to enrich the station panel
+  fetch('/forecasts')
+    .then(function (r) { return r.ok ? r.json() : null })
+    .then(function (data) {
+      if (!data) return
+      _forecastList = Array.isArray(data) ? data
+        : Array.isArray(data.forecasts) ? data.forecasts
+          : Array.isArray(data.measurements) ? data.measurements
+            : null
+    })
+    .catch(function () { /* forecasts optional — panel still works without */ })
 
   // Called from the station fetch once the list is available
   window._onStationsLoaded = function (list) {
@@ -236,12 +248,62 @@
     _showStationPanel(station)
   }
 
+  var _POLLUTANT_LABELS = { NO2: 'NO2', PM10: 'PM10', PM25: 'PM2.5', O3: 'O3', SO2: 'SO2' }
+  var _DAQI_BAND = [
+    null,
+    'Low', 'Low', 'Low',
+    'Moderate', 'Moderate', 'Moderate',
+    'High', 'High', 'High',
+    'Very High'
+  ]
+
+  // Find the forecast entry nearest to a station (within 0.05 degrees)
+  function _forecastForStation (station) {
+    if (!_forecastList || !station.location) return null
+    var sLat = parseFloat(station.location.coordinates[0])
+    var sLng = parseFloat(station.location.coordinates[1])
+    var best = null
+    var bestDist = 0.05 * 0.05
+    _forecastList.forEach(function (f) {
+      if (!f.location || !Array.isArray(f.location.coordinates)) return
+      var fLat = parseFloat(f.location.coordinates[0])
+      var fLng = parseFloat(f.location.coordinates[1])
+      var d = (fLat - sLat) * (fLat - sLat) + (fLng - sLng) * (fLng - sLng)
+      if (d < bestDist) { bestDist = d; best = f }
+    })
+    return best
+  }
+
   function _showStationPanel (station) {
     var panel = document.getElementById('station-panel')
     if (!panel) return
     document.getElementById('sp-name').textContent = station.name || ''
-    document.getElementById('sp-area').textContent = station.area || ''
-    document.getElementById('sp-type').textContent = station.areaType || ''
+
+    var rows = []
+    if (station.area) rows.push(['Region', station.area])
+    if (station.areaType) rows.push(['Site type', station.areaType])
+
+    var pollutants = station.pollutants || {}
+    var pollutantEntries = Object.keys(_POLLUTANT_LABELS).filter(function (k) {
+      return pollutants[k] !== undefined && pollutants[k] !== null
+    }).map(function (k) { return _POLLUTANT_LABELS[k] })
+    if (pollutantEntries.length > 0) rows.push(['Pollutants', pollutantEntries.join(', ')])
+
+    var forecast = _forecastForStation(station)
+    if (forecast && Array.isArray(forecast.forecast) && forecast.forecast.length > 0) {
+      var todayValue = forecast.forecast[0].value
+      var band = _DAQI_BAND[todayValue] || ''
+      rows.push(['DAQI', todayValue + (band ? ' (' + band + ')' : '')])
+    }
+
+    var dl = document.getElementById('sp-details')
+    dl.innerHTML = rows.map(function (r) {
+      return '<div class="govuk-summary-list__row">'
+        + '<dt class="govuk-summary-list__key" style="width:40%">' + r[0] + '</dt>'
+        + '<dd class="govuk-summary-list__value">' + r[1] + '</dd>'
+        + '</div>'
+    }).join('')
+
     panel.style.display = 'block'
   }
 
