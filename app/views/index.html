@@ -186,7 +186,7 @@
   var _selectedId = null
   var _pendingNav = null
 
-  // Fetch forecasts in parallel — used to enrich the station panel
+  // Fetch forecasts in parallel — used to colour markers and enrich the station panel
   fetch('/forecasts')
     .then(function (r) { return r.ok ? r.json() : null })
     .then(function (data) {
@@ -195,6 +195,7 @@
         : Array.isArray(data.forecasts) ? data.forecasts
           : Array.isArray(data.measurements) ? data.measurements
             : null
+      if (_mapReady && _stationList) _plotAllMarkers()
     })
     .catch(function () { /* forecasts optional — panel still works without */ })
 
@@ -219,32 +220,48 @@
     return [parseFloat(raw[1]), parseFloat(raw[0])]
   }
 
+  var _DAQI_BG = [null, '#00e600', '#00b300', '#008300', '#cccc00', '#cc8800', '#cc5500', '#cc2222', '#aa0000', '#660000', '#7700aa']
+
+  function _daqiMarkerOptions (daqiValue, selected) {
+    var bg = (daqiValue && _DAQI_BG[daqiValue]) ? _DAQI_BG[daqiValue] : (selected ? '#555555' : '#777777')
+    var strokeAttr = selected
+      ? 'stroke="#d4351c" stroke-width="3"'
+      : 'stroke="rgba(0,0,0,0.3)" stroke-width="1"'
+    var label = daqiValue ? '<text x="19" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="#ffffff">' + daqiValue + '</text>' : ''
+    var svgContent = '<circle cx="19" cy="19" r="14" fill="' + bg + '" ' + strokeAttr + '/>' + label
+    return {
+      symbolSvgContent: svgContent,
+      viewBox: '0 0 38 38',
+      anchor: [0.5, 0.5]
+    }
+  }
+
+  function _stationDaqi (station) {
+    var forecast = _forecastForStation(station)
+    if (forecast && Array.isArray(forecast.forecast) && forecast.forecast.length > 0) {
+      return forecast.forecast[0].value
+    }
+    return null
+  }
+
   function _plotAllMarkers () {
     _stationList.forEach(function (s) {
       if (!s.location || !Array.isArray(s.location.coordinates)) return
-      window.interactiveMap.addMarker('ms-' + s.localSiteID, _stationCoords(s), {
-        symbol: 'circle',
-        backgroundColor: '#1d70b8'
-      })
+      var id = 'ms-' + s.localSiteID
+      if (id === _selectedId) return
+      window.interactiveMap.addMarker(id, _stationCoords(s), _daqiMarkerOptions(_stationDaqi(s), false))
     })
   }
 
   function _highlightStation (station) {
-    // Restore the previously highlighted marker to normal style
     if (_selectedId && _stationList) {
       var prev = _stationList.find(function (s) { return 'ms-' + s.localSiteID === _selectedId })
       if (prev) {
-        window.interactiveMap.addMarker(_selectedId, _stationCoords(prev), {
-          symbol: 'circle',
-          backgroundColor: '#1d70b8'
-        })
+        window.interactiveMap.addMarker(_selectedId, _stationCoords(prev), _daqiMarkerOptions(_stationDaqi(prev), false))
       }
     }
     _selectedId = 'ms-' + station.localSiteID
-    window.interactiveMap.addMarker(_selectedId, _stationCoords(station), {
-      symbol: 'pin',
-      backgroundColor: '#d4351c'
-    })
+    window.interactiveMap.addMarker(_selectedId, _stationCoords(station), _daqiMarkerOptions(_stationDaqi(station), true))
     _showStationPanel(station)
   }
 
