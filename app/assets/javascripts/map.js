@@ -1,4 +1,4 @@
-;(function () {
+; (function () {
   window.interactiveMap = new defra.InteractiveMap('map', {
     mapProvider: defra.maplibreProvider(),
     behaviour: 'hybrid',
@@ -48,14 +48,14 @@
   })
 
   // API returns coordinates as [lat, lng] strings; map needs [lng, lat] numbers
-  function _stationCoords (station) {
+  function _stationCoords(station) {
     var raw = station.location.coordinates
     return [parseFloat(raw[1]), parseFloat(raw[0])]
   }
 
   var _DAQI_BG = [null, '#00e600', '#00b300', '#008300', '#cccc00', '#cc8800', '#cc5500', '#cc2222', '#aa0000', '#660000', '#7700aa']
 
-  function _daqiMarkerOptions (daqiValue, selected) {
+  function _daqiMarkerOptions(daqiValue, selected) {
     var bg = (daqiValue && _DAQI_BG[daqiValue]) ? _DAQI_BG[daqiValue] : (selected ? '#555555' : '#777777')
     var strokeAttr = selected
       ? 'stroke="#d4351c" stroke-width="3"'
@@ -69,7 +69,7 @@
     }
   }
 
-  function _stationDaqi (station) {
+  function _stationDaqi(station) {
     var forecast = _forecastForStation(station)
     if (forecast && Array.isArray(forecast.forecast) && forecast.forecast.length > 0) {
       return forecast.forecast[0].value
@@ -77,7 +77,7 @@
     return null
   }
 
-  function _plotAllMarkers () {
+  function _plotAllMarkers() {
     _stationList.forEach(function (s) {
       if (!s.location || !Array.isArray(s.location.coordinates)) return
       var id = 'ms-' + s.localSiteID
@@ -86,7 +86,7 @@
     })
   }
 
-  function _highlightStation (station) {
+  function _highlightStation(station) {
     if (_selectedId && _stationList) {
       var prev = _stationList.find(function (s) { return 'ms-' + s.localSiteID === _selectedId })
       if (prev) {
@@ -108,7 +108,7 @@
   ]
 
   // Find the forecast entry nearest to a station (within 0.05 degrees)
-  function _forecastForStation (station) {
+  function _forecastForStation(station) {
     if (!_forecastList || !station.location) return null
     var sLat = parseFloat(station.location.coordinates[0])
     var sLng = parseFloat(station.location.coordinates[1])
@@ -124,7 +124,7 @@
     return best
   }
 
-  function _showStationPanel (station) {
+  function _showStationPanel(station) {
     var panel = document.getElementById('station-panel')
     if (!panel) return
     document.getElementById('sp-name').textContent = station.name || ''

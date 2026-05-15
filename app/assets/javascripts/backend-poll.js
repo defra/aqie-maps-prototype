@@ -1,5 +1,5 @@
-;(function () {
-  function updateBanner (connected, url) {
+; (function () {
+  function updateBanner(connected, url) {
     var banner = document.getElementById('backend-banner')
     var tag = document.getElementById('backend-tag')
     var urlEl = document.getElementById('backend-url')
@@ -18,7 +18,7 @@
     if (urlEl && url) urlEl.textContent = url
   }
 
-  function poll () {
+  function poll() {
     fetch('/api/health')
       .then(function (r) { return r.json() })
       .then(function (data) { updateBanner(data.connected, data.url) })

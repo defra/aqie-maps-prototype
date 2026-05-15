@@ -1,4 +1,4 @@
-;(function () {
+; (function () {
   // Load station list asynchronously so the page doesn't block
   fetch('/monitoringStationInfo', { signal: AbortSignal.timeout(90000) })
     .then(function (r) {
