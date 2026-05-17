@@ -53,14 +53,15 @@
     return [parseFloat(raw[1]), parseFloat(raw[0])]
   }
 
-  var _DAQI_BG = [null, '#00e600', '#00b300', '#008300', '#cccc00', '#cc8800', '#cc5500', '#cc2222', '#aa0000', '#660000', '#7700aa']
+  var _DAQI_BG = [null, '#00703c', '#00703c', '#00703c', '#ffdd00', '#ffdd00', '#ffdd00', '#d4351c', '#d4351c', '#d4351c', '#0b0c0c']
 
   function _daqiMarkerOptions(daqiValue, selected) {
     var bg = (daqiValue && _DAQI_BG[daqiValue]) ? _DAQI_BG[daqiValue] : (selected ? '#555555' : '#777777')
     var strokeAttr = selected
       ? 'stroke="#d4351c" stroke-width="3"'
       : 'stroke="rgba(0,0,0,0.3)" stroke-width="1"'
-    var label = daqiValue ? '<text x="19" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="#ffffff">' + daqiValue + '</text>' : ''
+    var textFill = (bg === '#ffdd00') ? '#0b0c0c' : '#ffffff'
+    var label = daqiValue ? '<text x="19" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="' + textFill + '">' + daqiValue + '</text>' : ''
     var svgContent = '<circle cx="19" cy="19" r="14" fill="' + bg + '" ' + strokeAttr + '/>' + label
     return {
       symbolSvgContent: svgContent,
