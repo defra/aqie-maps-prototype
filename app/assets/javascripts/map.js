@@ -5,7 +5,7 @@
     mapLabel: 'United Kingdom',
     zoom: 5.4842222,
     center: [-1.4649, 52.5619],
-    containerHeight: '650px',
+    containerHeight: '100%',
     mapStyle: {
       url: 'https://tiles.openfreemap.org/styles/liberty',
       attribution: 'OpenFreeMap © OpenMapTiles Data from OpenStreetMap',
@@ -156,7 +156,7 @@
         + '</div>'
     }).join('')
 
-    panel.style.display = 'block'
+    panel.classList.add('visible')
     _hideKeyOverlay(false)
   }
 
@@ -258,7 +258,7 @@
 
   var _spClose = document.getElementById('sp-close')
   _spClose.addEventListener('click', function () {
-    document.getElementById('station-panel').style.display = 'none'
+    document.getElementById('station-panel').classList.remove('visible')
     if (!_keyClosedByUser) _showKeyOverlay()
   })
 })()

@@ -13,10 +13,19 @@ const {
   getMonitoringStationInfo
 } = require('./api/aqieBackEnd')
 
-// Home — includes aqie-back-end connectivity banner
+// Home — landing page with View on a map link
 router.get('/', async (req, res) => {
   const health = await checkHealth()
   res.render('index.html', {
+    backendUrl: health.url,
+    backendConnected: health.connected
+  })
+})
+
+// Fullscreen map page
+router.get('/map', async (req, res) => {
+  const health = await checkHealth()
+  res.render('map.html', {
     backendUrl: health.url,
     backendConnected: health.connected
   })

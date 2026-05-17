@@ -1,40 +1,22 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = "Home" %}
-
-{% block head %}
-{{ super() }}
-<link href="/plugin-assets/%40defra%2Finteractive-map/dist/css/index.css" rel="stylesheet" type="text/css">
-{% endblock %}
+{% set pageName = "Check air quality" %}
 
 {% block content %}
+
 {% include "includes/backend-banner.html" %}
-{% include "includes/station-list.html" %}
 
-<div class="aq-map-container">
-  <div id="map"></div>
-  <div id="map-key-overlay" class="aq-map-key" role="region" aria-label="Map key">
-    <button id="map-key-close" class="aq-map-key__close" aria-label="Close map key">
-      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-        <path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z"/>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-xl">Check air quality near you</h1>
+    <p class="govuk-body-l">View current air quality readings from monitoring stations across the UK on an interactive map.</p>
+    <a href="/map" class="govuk-button govuk-button--start" data-module="govuk-button">
+      View on a map
+      <svg class="govuk-button__start-icon" xmlns="http://www.w3.org/2000/svg" width="17.5" height="19" viewBox="0 0 33 40" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M0 0h13l20 20-20 20H0l20-20z"/>
       </svg>
-      <span class="govuk-visually-hidden">Close map key</span>
-    </button>
-    <div class="aq-map-key__body">
-      <h2 class="govuk-heading-s govuk-!-margin-bottom-1">Map key</h2>
-      <p class="govuk-body-s govuk-!-margin-bottom-2" id="map-key-subtitle">Daily Air Quality Index (DAQI)</p>
-      <div id="map-key-body"></div>
-    </div>
+    </a>
   </div>
-  <button id="map-key-reopen" class="aq-map-key__reopen govuk-body-s" hidden>Show map key</button>
 </div>
-{% include "includes/station-panel.html" %}
-{% endblock %}
 
-{% block pageScripts %}
-<script src="/public/javascripts/backend-poll.js"></script>
-<script src="/public/javascripts/station-list.js"></script>
-<script src="/plugin-assets/%40defra%2Finteractive-map/dist/umd/index.js"></script>
-<script src="/plugin-assets/%40defra%2Finteractive-map/providers/maplibre/dist/umd/index.js"></script>
-<script src="/public/javascripts/map.js"></script>
 {% endblock %}
