@@ -157,11 +157,8 @@
     }).join('')
 
     panel.style.display = 'block'
+    _hideKeyOverlay(false)
   }
-
-  document.getElementById('sp-close').addEventListener('click', function () {
-    document.getElementById('station-panel').style.display = 'none'
-  })
 
   // MAP_CLICK: highlight the nearest station if the click is within ~0.1 degrees
   window.interactiveMap.on('map:click', function (evt) {
@@ -189,4 +186,79 @@
       window.interactiveMap.open()
     }
   }
+
+  // Map key / legend panel
+  function _renderKeyOverlay() {
+    var body = document.getElementById('map-key-body')
+    if (!body) return
+    body.innerHTML =
+      '<div class="aq-daqi-scale">' +
+        '<div class="aq-daqi-scale__bands">' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">1</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">2</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">3</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">4</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">5</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">6</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">7</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">8</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">9</div>' +
+          '<div class="aq-daqi-scale__band aq-daqi-scale__band--black">10</div>' +
+        '</div>' +
+        '<div class="aq-daqi-scale__labels">' +
+          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--low">' +
+            '<span class="aq-daqi-scale__level">Low</span>' +
+            '<span class="aq-daqi-scale__range">1 to 3</span>' +
+          '</div>' +
+          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--moderate">' +
+            '<span class="aq-daqi-scale__level">Moderate</span>' +
+            '<span class="aq-daqi-scale__range">4 to 6</span>' +
+          '</div>' +
+          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--high">' +
+            '<span class="aq-daqi-scale__level">High</span>' +
+            '<span class="aq-daqi-scale__range">7 to 9</span>' +
+          '</div>' +
+          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--veryhigh">' +
+            '<span class="aq-daqi-scale__level">Very high</span>' +
+            '<span class="aq-daqi-scale__range">10</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+  }
+
+  var _keyClosedByUser = false
+
+  function _showKeyOverlay() {
+    var overlay = document.getElementById('map-key-overlay')
+    var reopen = document.getElementById('map-key-reopen')
+    if (overlay) overlay.hidden = false
+    if (reopen) reopen.hidden = true
+  }
+
+  function _hideKeyOverlay(byUser) {
+    var overlay = document.getElementById('map-key-overlay')
+    var reopen = document.getElementById('map-key-reopen')
+    if (overlay) overlay.hidden = true
+    if (byUser) {
+      _keyClosedByUser = true
+      if (reopen) reopen.hidden = false
+    }
+  }
+
+  _renderKeyOverlay()
+
+  document.getElementById('map-key-close').addEventListener('click', function () {
+    _hideKeyOverlay(true)
+  })
+
+  document.getElementById('map-key-reopen').addEventListener('click', function () {
+    _keyClosedByUser = false
+    _showKeyOverlay()
+  })
+
+  var _spClose = document.getElementById('sp-close')
+  _spClose.addEventListener('click', function () {
+    document.getElementById('station-panel').style.display = 'none'
+    if (!_keyClosedByUser) _showKeyOverlay()
+  })
 })()

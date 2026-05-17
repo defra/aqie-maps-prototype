@@ -11,7 +11,23 @@
 {% include "includes/backend-banner.html" %}
 {% include "includes/station-list.html" %}
 
-<div id="map"></div>
+<div class="aq-map-container">
+  <div id="map"></div>
+  <div id="map-key-overlay" class="aq-map-key" role="region" aria-label="Map key">
+    <button id="map-key-close" class="aq-map-key__close" aria-label="Close map key">
+      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
+        <path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z"/>
+      </svg>
+      <span class="govuk-visually-hidden">Close map key</span>
+    </button>
+    <div class="aq-map-key__body">
+      <h2 class="govuk-heading-s govuk-!-margin-bottom-1">Map key</h2>
+      <p class="govuk-body-s govuk-!-margin-bottom-2" id="map-key-subtitle">Daily Air Quality Index (DAQI)</p>
+      <div id="map-key-body"></div>
+    </div>
+  </div>
+  <button id="map-key-reopen" class="aq-map-key__reopen govuk-body-s" hidden>Show map key</button>
+</div>
 {% include "includes/station-panel.html" %}
 {% endblock %}
 
