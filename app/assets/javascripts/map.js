@@ -58,11 +58,12 @@
   function _daqiMarkerOptions(daqiValue, selected) {
     var bg = (daqiValue && _DAQI_BG[daqiValue]) ? _DAQI_BG[daqiValue] : (selected ? '#555555' : '#777777')
     var strokeAttr = selected
-      ? 'stroke="#d4351c" stroke-width="3"'
-      : 'stroke="rgba(0,0,0,0.3)" stroke-width="1"'
+      ? 'stroke="#0b0c0c" stroke-width="3"'
+      : 'stroke="white" stroke-width="3"'
     var textFill = (bg === '#ffdd00') ? '#0b0c0c' : '#ffffff'
     var label = daqiValue ? '<text x="19" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="' + textFill + '">' + daqiValue + '</text>' : ''
-    var svgContent = '<circle cx="19" cy="19" r="14" fill="' + bg + '" ' + strokeAttr + '/>' + label
+    var shadow = '<defs><filter id="ds" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/></filter></defs>'
+    var svgContent = shadow + '<circle cx="19" cy="19" r="14" fill="' + bg + '" ' + strokeAttr + ' filter="url(#ds)"/>' + label
     return {
       symbolSvgContent: svgContent,
       viewBox: '0 0 38 38',
