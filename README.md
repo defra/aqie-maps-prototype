@@ -25,7 +25,7 @@ the [GOV.UK Frontend](https://github.com/alphagov/govuk-frontend).
   - [Endpoints used](#endpoints-used)
   - [Deploying to CDP](#deploying-to-cdp)
 - [Docker](#docker)
-  - [Development image](#development-image)
+  - [Docker Compose](#docker-compose)
   - [Production image](#production-image)
   - [Debug docker](#debug-docker)
 - [Licence](#licence)
@@ -206,12 +206,15 @@ the homepage will show a **Not Connected** banner.
 
 ### Running locally
 
-The easiest way to run `aqie-back-end` locally is via Docker. Pull or build the image then start it with
-the environment file it requires:
+The easiest way to run `aqie-back-end` locally is via its own Docker Compose file. From the `aqie-back-end`
+directory:
 
 ```bash
-docker run -p 3001:3001 --env-file .env aqie-back-end
+docker compose up --build
 ```
+
+This starts `aqie-back-end` on port `3001` and creates the shared `cdp-tenant` Docker network that this prototype
+also joins (see [Docker Compose](#docker-compose)).
 
 Once it is running, verify connectivity:
 
@@ -219,12 +222,8 @@ Once it is running, verify connectivity:
 curl http://localhost:3001/health
 ```
 
-The prototype reads `AQIE_BACK_END_URL` to know where to find the service. Copy [.env.template](./.env.template)
-to `.env` (if you haven't already) — the default value points at the local Docker container:
-
-```dotenv
-AQIE_BACK_END_URL=http://localhost:3001
-```
+When running both services via Docker Compose, `AQIE_BACK_END_URL` is automatically set to
+`http://aqie-back-end:3001` using Docker's internal networking — no manual configuration needed.
 
 ### Endpoints used
 
@@ -249,26 +248,30 @@ For the most part you will not need to be concerned with `docker` when running t
 your `docker` will automatically be built, published and pushed when you deploy a new version of your prototype via the
 UI in the CDP Portal.
 
-### Development image
+### Docker Compose
 
-Build:
+The recommended way to run this prototype locally alongside `aqie-back-end`. Both services join the shared
+`cdp-tenant` Docker network, so they can reach each other by service name.
+
+> [!IMPORTANT]
+> Start `aqie-back-end` first (via `docker compose up --build` in its directory) so the `cdp-tenant` network exists
+> before this prototype starts.
+
+Build and start:
 
 ```bash
-docker build --target development --no-cache --tag aqie-maps-prototype:development .
+docker compose up --build
 ```
 
-Run:
-
-> On Linux, `--add-host` is required so the container can reach `aqie-back-end` running on your host machine.
+Stop:
 
 ```bash
-docker run \
-  --add-host=host.docker.internal:host-gateway \
-  -e PORT=3000 \
-  -e AQIE_BACK_END_URL=http://host.docker.internal:3001 \
-  -p 3000:3000 \
-  aqie-maps-prototype:development
+docker compose down
 ```
+
+The `AQIE_BACK_END_URL` is automatically set to `http://aqie-back-end:3001` inside the container. Other variables
+(e.g. `PASSWORD`) are loaded from your `.env` file — copy [.env.template](./.env.template) to `.env` if you
+haven't already.
 
 ### Production image
 
