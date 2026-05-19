@@ -16,8 +16,23 @@
   var _mapReady = false
   var _stationList = null
   var _forecastList = null
+  var _measurementsMap = {}   // keyed by localSiteID
   var _selectedId = null
   var _pendingNav = null
+
+  // Fetch measurements to derive per-station pollutant lists
+  fetch('/measurements')
+    .then(function (r) { return r.ok ? r.json() : null })
+    .then(function (data) {
+      if (!data) return
+      var list = Array.isArray(data) ? data
+        : Array.isArray(data.measurements) ? data.measurements
+          : []
+      list.forEach(function (m) {
+        if (m.name) _measurementsMap[m.name.trim().toLowerCase()] = m
+      })
+    })
+    .catch(function () { /* measurements optional */ })
 
   // Fetch forecasts in parallel — used to colour markers and enrich the station panel
   fetch('/forecasts')
@@ -58,8 +73,8 @@
   function _daqiMarkerOptions(daqiValue, selected) {
     var bg = (daqiValue && _DAQI_BG[daqiValue]) ? _DAQI_BG[daqiValue] : (selected ? '#555555' : '#777777')
     var strokeAttr = selected
-      ? 'stroke="#0b0c0c" stroke-width="3"'
-      : 'stroke="white" stroke-width="3"'
+      ? 'stroke="#0b0c0c" stroke-width="2"'
+      : 'stroke="white" stroke-width="2"'
     var textFill = (bg === '#ffdd00') ? '#0b0c0c' : '#ffffff'
     var label = daqiValue ? '<text x="19" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="' + textFill + '">' + daqiValue + '</text>' : ''
     var shadow = '<defs><filter id="ds" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/></filter></defs>'
@@ -100,7 +115,17 @@
     _showStationPanel(station)
   }
 
-  var _POLLUTANT_LABELS = { NO2: 'NO2', PM10: 'PM10', PM25: 'PM2.5', O3: 'O3', SO2: 'SO2' }
+  // Maps measurement keys → canonical display names. Multiple codes can map to the
+  // same display name (e.g. GE10/GR10 are both PM10 variants); duplicates are removed.
+  var _POLLUTANT_LABELS = {
+    NO2:  'NO₂',
+    O3:   'O₃',
+    SO2:  'SO₂',
+    PM25: 'PM2.5',
+    GE10: 'PM10',   // Gravimetric Equivalent PM10
+    GR10: 'PM10',   // Gravimetric Reference PM10
+    GR25: 'PM2.5'   // Gravimetric Reference PM2.5
+  }
   var _DAQI_BAND = [
     null,
     'Low', 'Low', 'Low',
@@ -126,38 +151,80 @@
     return best
   }
 
+  function _formatDate(dateStr) {
+    if (!dateStr) return ''
+    var d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
   function _showStationPanel(station) {
     var panel = document.getElementById('station-panel')
     if (!panel) return
-    document.getElementById('sp-name').textContent = station.name || ''
+
+    var status = (station.stationStatus || station.status || station.siteStatus || '').toLowerCase()
+    var isClosed = status === 'closed'
+    var tagLabel = status === 'current' ? 'Active'
+      : status ? status.charAt(0).toUpperCase() + status.slice(1) : ''
+    var tagClass = status === 'current' ? 'aq-station-tag--active'
+      : isClosed ? 'aq-station-tag--closed' : ''
+    var tag = tagClass
+      ? ' <strong class="aq-station-tag ' + tagClass + '">' + tagLabel + '</strong>'
+      : ''
+
+    document.getElementById('sp-name').innerHTML = _escapeHtml(station.name || '') + tag
 
     var rows = []
-    if (station.area) rows.push(['Region', station.area])
+
+    // Derive pollutant list from measurements data joined on station name
+    var measured = (_measurementsMap[(station.name || '').trim().toLowerCase()] || {}).pollutants || {}
+    var seen = []
+    Object.keys(_POLLUTANT_LABELS).forEach(function (k) {
+      if (measured[k] !== undefined) {
+        var label = _POLLUTANT_LABELS[k]
+        if (seen.indexOf(label) === -1) seen.push(label)
+      }
+    })
+    if (seen.length > 0) rows.push(['Pollutants', seen.join(', ')])
+
+    if (!isClosed) {
+      var forecast = _forecastForStation(station)
+      if (forecast && Array.isArray(forecast.forecast) && forecast.forecast.length > 0) {
+        var todayValue = forecast.forecast[0].value
+        var band = _DAQI_BAND[todayValue] || ''
+        var bandKey = band.toLowerCase().replace(' ', '')
+        var daqiClass = bandKey ? 'aq-daqi-tag aq-daqi-tag--' + bandKey : 'aq-daqi-tag'
+        var daqiHtml = '<span class="' + daqiClass + '">' + todayValue + (band ? ' (' + band.toLowerCase() + ')' : '') + '</span>'
+        rows.push(['DAQI', daqiHtml, true])
+      }
+    }
+
+    var authority = station.localAuthority || station.localAuthorityName || station.authority || station.owner || ''
+    rows.push(['Local authority', authority || 'Not available'])
     if (station.areaType) rows.push(['Site type', station.areaType])
 
-    var pollutants = station.pollutants || {}
-    var pollutantEntries = Object.keys(_POLLUTANT_LABELS).filter(function (k) {
-      return pollutants[k] !== undefined && pollutants[k] !== null
-    }).map(function (k) { return _POLLUTANT_LABELS[k] })
-    if (pollutantEntries.length > 0) rows.push(['Pollutants', pollutantEntries.join(', ')])
+    var startDate = station.startDate || station.openingDate || station.dateOpened || ''
+    rows.push(['Start date', startDate ? _formatDate(startDate) : 'Not available'])
 
-    var forecast = _forecastForStation(station)
-    if (forecast && Array.isArray(forecast.forecast) && forecast.forecast.length > 0) {
-      var todayValue = forecast.forecast[0].value
-      var band = _DAQI_BAND[todayValue] || ''
-      rows.push(['DAQI', todayValue + (band ? ' (' + band + ')' : '')])
+    if (isClosed) {
+      var endDate = station.endDate || station.closingDate || station.dateClosed || ''
+      rows.push(['End date', endDate ? _formatDate(endDate) : 'Not available'])
     }
 
     var dl = document.getElementById('sp-details')
     dl.innerHTML = rows.map(function (r) {
-      return '<div class="govuk-summary-list__row">'
-        + '<dt class="govuk-summary-list__key" style="width:40%">' + r[0] + '</dt>'
-        + '<dd class="govuk-summary-list__value">' + r[1] + '</dd>'
+      return '<div class="aq-station-info-row">'
+        + '<dt>' + _escapeHtml(r[0]) + ':</dt> '
+        + '<dd>' + (r[2] ? r[1] : _escapeHtml(String(r[1]))) + '</dd>'
         + '</div>'
     }).join('')
 
     panel.classList.add('visible')
     _hideKeyOverlay(false)
+  }
+
+  function _escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   }
 
   // MAP_CLICK: highlight the nearest station if the click is within ~0.1 degrees
@@ -230,18 +297,14 @@
 
   function _showKeyOverlay() {
     var overlay = document.getElementById('map-key-overlay')
-    var reopen = document.getElementById('map-key-reopen')
     if (overlay) overlay.hidden = false
-    if (reopen) reopen.hidden = true
   }
 
   function _hideKeyOverlay(byUser) {
     var overlay = document.getElementById('map-key-overlay')
-    var reopen = document.getElementById('map-key-reopen')
     if (overlay) overlay.hidden = true
     if (byUser) {
       _keyClosedByUser = true
-      if (reopen) reopen.hidden = false
     }
   }
 
@@ -251,9 +314,14 @@
     _hideKeyOverlay(true)
   })
 
-  document.getElementById('map-key-reopen').addEventListener('click', function () {
-    _keyClosedByUser = false
-    _showKeyOverlay()
+  document.getElementById('key-button').addEventListener('click', function () {
+    var overlay = document.getElementById('map-key-overlay')
+    if (overlay && overlay.hidden) {
+      _keyClosedByUser = false
+      _showKeyOverlay()
+    } else {
+      _hideKeyOverlay(true)
+    }
   })
 
   var _spClose = document.getElementById('sp-close')

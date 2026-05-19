@@ -19,7 +19,7 @@
 
   <button class="aq-map__exit" id="exit-map" type="button" onclick="history.back()">
     <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-      <path d="M4.828,11L12.314,18.485L10.899,19.899L1,10L10.899,0.101L12.314,1.515L4.828,9L19,9L19,11L4.828,11Z"/>
+      <path d="M4.828,11L12.314,18.485L10.899,19.899L1,10L10.899,0.101L12.314,1.515L4.828,9L19,9L19,11L4.828,11Z" />
     </svg>
     <span>Exit map</span>
   </button>
@@ -27,7 +27,7 @@
   <div id="map-key-overlay" class="aq-map-key" role="region" aria-label="Map key">
     <button id="map-key-close" class="aq-map-key__close" aria-label="Close map key">
       <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-        <path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z"/>
+        <path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z" />
       </svg>
       <span class="govuk-visually-hidden">Close map key</span>
     </button>
@@ -37,7 +37,17 @@
       <div id="map-key-body"></div>
     </div>
   </div>
-  <button id="map-key-reopen" class="aq-map-key__reopen govuk-body-s" hidden>Show map key</button>
+  <div class="reopen-stack" aria-label="Map actions">
+    <button class="aq-map__menu reopen-btn" id="key-button" aria-label="Toggle map key">
+      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20" fill-rule="evenodd" fill="currentColor">
+        <circle cx="3.5" cy="4" r="1.5"></circle>
+        <circle cx="3.5" cy="10" r="1.5"></circle>
+        <circle cx="3.5" cy="16" r="1.5"></circle>
+        <path d="M7 4h11M7 10h11M7 16h11" fill="none" stroke="currentColor" stroke-width="2"></path>
+      </svg>
+      <span class="reopen-text">Key</span>
+    </button>
+  </div>
 
   {% include "includes/station-panel.html" %}
 </div>

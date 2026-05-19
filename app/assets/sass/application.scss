@@ -40,21 +40,50 @@
   }
 }
 
-.aq-map-key__reopen {
+.reopen-stack {
   position: absolute;
-  bottom: 24px;
-  left: 12px;
-  z-index: 100;
-  background: white;
-  border: 1px solid #b1b4b6;
-  padding: 6px 12px;
-  cursor: pointer;
+  right: 10px;
+  bottom: 90px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
 
-  &:hover,
-  &:focus {
-    outline: 3px solid #ffdd00;
-    outline-offset: 0;
+  > * { pointer-events: auto; }
+}
+
+.aq-map__menu {
+  height: 40px;
+  background-color: #fff;
+  color: #0b0c0c;
+  border: 0;
+  box-shadow: 0 0 3px 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  font-family: "GDS Transport", Arial, sans-serif;
+
+  &:hover { background-color: #f3f2f1; }
+
+  &:focus-visible {
+    outline: 3px solid transparent;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 5px #0b0c0c, 0 0 0 8px #ffdd00;
   }
+}
+
+.reopen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  white-space: nowrap;
+
+  svg { display: block; flex-shrink: 0; }
+}
+
+.reopen-text {
+  font-size: 16px;
+  line-height: 40px;
 }
 
 .aq-daqi-scale {
@@ -79,11 +108,26 @@
   color: white;
   line-height: 1;
 
-  &--green  { background-color: #00703c; }
-  &--yellow { background-color: #ffdd00; color: #0b0c0c; }
-  &--amber  { background-color: #f47738; }
-  &--red    { background-color: #d4351c; }
-  &--black  { background-color: #0b0c0c; }
+  &--green {
+    background-color: #00703c;
+  }
+
+  &--yellow {
+    background-color: #ffdd00;
+    color: #0b0c0c;
+  }
+
+  &--amber {
+    background-color: #f47738;
+  }
+
+  &--red {
+    background-color: #d4351c;
+  }
+
+  &--black {
+    background-color: #0b0c0c;
+  }
 }
 
 .aq-daqi-scale__labels {
@@ -97,10 +141,21 @@
   flex-direction: column;
   align-items: flex-start;
 
-  &--low      { flex: 3; }
-  &--moderate { flex: 3; }
-  &--high     { flex: 3; }
-  &--veryhigh { flex: 1; }
+  &--low {
+    flex: 3;
+  }
+
+  &--moderate {
+    flex: 3;
+  }
+
+  &--high {
+    flex: 3;
+  }
+
+  &--veryhigh {
+    flex: 1;
+  }
 }
 
 .aq-daqi-scale__level {
@@ -151,6 +206,63 @@
   }
 }
 
+// Station name header with status tag
+.aq-station-header {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.aq-station-tag {
+  display: inline-block;
+  font-family: "GDS Transport", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 8px;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  &--active { background-color: #bbd4ea; color: #0b0c0c; font-weight: 400; }
+  &--closed { background-color: #0b0c0c; color: #ffffff; }
+}
+
+.aq-daqi-tag {
+  display: inline-block;
+  font-weight: 400;
+  padding: 1px 6px;
+
+  &--low      { background-color: #cce2d8; color: #0b0c0c; }
+  &--moderate { background-color: #fff7bf; color: #0b0c0c; }
+  &--high     { background-color: #f6d7d2; color: #0b0c0c; }
+  &--veryhigh { background-color: #0b0c0c; color: #ffffff; }
+}
+
+// Station info inline list
+.aq-station-info-list {
+  margin: 0;
+
+  dt {
+    font-weight: 700;
+    display: inline;
+  }
+
+  dd {
+    display: inline;
+    margin: 0;
+  }
+}
+
+.aq-station-info-row {
+  margin-bottom: 8px;
+
+  &::after {
+    content: "";
+    display: block;
+  }
+}
+
 // Station info panel
 .aq-map-info {
   position: absolute;
@@ -166,8 +278,9 @@
   }
 
   @media (min-width: 641px) {
-    width: 500px;
-    max-width: 500px;
+    width: fit-content;
+    min-width: 300px;
+    max-width: 520px;
   }
 
   @media (max-width: 640px) {
@@ -207,4 +320,3 @@
     }
   }
 }
-

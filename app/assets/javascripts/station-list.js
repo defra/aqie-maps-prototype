@@ -48,6 +48,13 @@
 
           areas[areaName].forEach(function (s) {
             var li = document.createElement('li')
+
+            var statusRaw = (s.stationStatus || s.status || s.siteStatus || '').toLowerCase()
+            var tagLabel = statusRaw === 'current' ? 'Active'
+              : statusRaw ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1) : ''
+            var tagClass = statusRaw === 'current' ? 'aq-station-tag--active'
+              : statusRaw === 'closed' ? 'aq-station-tag--closed' : ''
+
             if (s.location && Array.isArray(s.location.coordinates)) {
               var btn = document.createElement('button')
               btn.className = 'govuk-link'
@@ -58,8 +65,17 @@
               })
               li.appendChild(btn)
             } else {
-              li.textContent = s.name
+              li.appendChild(document.createTextNode(s.name || ''))
             }
+
+            if (tagLabel && tagClass) {
+              var tag = document.createElement('strong')
+              tag.className = 'aq-station-tag ' + tagClass
+              tag.textContent = tagLabel
+              li.appendChild(document.createTextNode(' '))
+              li.appendChild(tag)
+            }
+
             ul.appendChild(li)
           })
 
