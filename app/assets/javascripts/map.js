@@ -118,9 +118,9 @@
   // Maps measurement keys → canonical display names. Multiple codes can map to the
   // same display name (e.g. GE10/GR10 are both PM10 variants); duplicates are removed.
   var _POLLUTANT_LABELS = {
-    NO2:  'NO₂',
-    O3:   'O₃',
-    SO2:  'SO₂',
+    NO2: 'NO₂',
+    O3: 'O₃',
+    SO2: 'SO₂',
     PM25: 'PM2.5',
     GE10: 'PM10',   // Gravimetric Equivalent PM10
     GR10: 'PM10',   // Gravimetric Reference PM10
@@ -260,36 +260,36 @@
     if (!body) return
     body.innerHTML =
       '<div class="aq-daqi-scale">' +
-        '<div class="aq-daqi-scale__bands">' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">1</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">2</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">3</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">4</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">5</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">6</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">7</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">8</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">9</div>' +
-          '<div class="aq-daqi-scale__band aq-daqi-scale__band--black">10</div>' +
-        '</div>' +
-        '<div class="aq-daqi-scale__labels">' +
-          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--low">' +
-            '<span class="aq-daqi-scale__level">Low</span>' +
-            '<span class="aq-daqi-scale__range">1 to 3</span>' +
-          '</div>' +
-          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--moderate">' +
-            '<span class="aq-daqi-scale__level">Moderate</span>' +
-            '<span class="aq-daqi-scale__range">4 to 6</span>' +
-          '</div>' +
-          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--high">' +
-            '<span class="aq-daqi-scale__level">High</span>' +
-            '<span class="aq-daqi-scale__range">7 to 9</span>' +
-          '</div>' +
-          '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--veryhigh">' +
-            '<span class="aq-daqi-scale__level">Very high</span>' +
-            '<span class="aq-daqi-scale__range">10</span>' +
-          '</div>' +
-        '</div>' +
+      '<div class="aq-daqi-scale__bands">' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">1</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">2</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--green">3</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">4</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">5</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--yellow">6</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">7</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">8</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--red">9</div>' +
+      '<div class="aq-daqi-scale__band aq-daqi-scale__band--black">10</div>' +
+      '</div>' +
+      '<div class="aq-daqi-scale__labels">' +
+      '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--low">' +
+      '<span class="aq-daqi-scale__level">Low</span>' +
+      '<span class="aq-daqi-scale__range">1 to 3</span>' +
+      '</div>' +
+      '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--moderate">' +
+      '<span class="aq-daqi-scale__level">Moderate</span>' +
+      '<span class="aq-daqi-scale__range">4 to 6</span>' +
+      '</div>' +
+      '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--high">' +
+      '<span class="aq-daqi-scale__level">High</span>' +
+      '<span class="aq-daqi-scale__range">7 to 9</span>' +
+      '</div>' +
+      '<div class="aq-daqi-scale__label-group aq-daqi-scale__label-group--veryhigh">' +
+      '<span class="aq-daqi-scale__level">Very high</span>' +
+      '<span class="aq-daqi-scale__range">10</span>' +
+      '</div>' +
+      '</div>' +
       '</div>'
   }
 
