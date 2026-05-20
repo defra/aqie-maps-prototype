@@ -293,6 +293,104 @@
   }
 }
 
+// Filter panel - search by pollutant
+.aq-filter-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+  width: 350px;
+  max-height: calc(100vh - 20px);
+  border: 2px solid #0b0c0c;
+  background-color: #ffffff;
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.aq-filter-panel__close {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background-color: #ffffff;
+  color: #0b0c0c;
+
+  svg {
+    display: block;
+    margin: 10px;
+  }
+
+  &:hover {
+    background-color: #f3f2f1;
+  }
+
+  &:focus-visible {
+    outline: 3px solid transparent;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 5px #0b0c0c, 0 0 0 8px #ffdd00;
+  }
+}
+
+.aq-filter-panel__body {
+  padding: 18px;
+  padding-right: 50px;
+  font-family: "GDS Transport", Arial, sans-serif;
+}
+
+.aq-filter-panel__tabs {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.aq-filter-panel__tab {
+  height: 40px;
+  width: 50%;
+  background-color: transparent;
+  padding: 0 5px;
+  border: none;
+  cursor: pointer;
+  font-family: "GDS Transport", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+
+  &[aria-pressed="true"] {
+    border: 2px solid #0b0c0c;
+  }
+
+  &[aria-pressed="false"] {
+    background-color: #f8f8f8;
+    border: 1px solid #e7e7e7;
+    color: #505a5f;
+  }
+
+  &:focus-visible {
+    outline: 3px solid transparent;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 5px #0b0c0c, 0 0 0 8px #ffdd00;
+    position: relative;
+    z-index: 5;
+  }
+}
+
+.aq-filter-panel__scroll {
+  margin-top: 2px;
+  max-height: 68vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 4px 0 10px;
+  width: 100%;
+}
+
+#filter-mount {
+  margin-top: 12px;
+}
+
 // Station info panel
 .aq-map-info {
   position: absolute;
