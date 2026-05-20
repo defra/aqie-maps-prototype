@@ -227,12 +227,12 @@ When running both services via Docker Compose, `AQIE_BACK_END_URL` is automatica
 
 ### Endpoints used
 
-| Endpoint                      | Description                                                                 |
-| :---------------------------- | :-------------------------------------------------------------------------- |
-| `GET /health`                 | Health check — used by the homepage connectivity banner                     |
-| `GET /forecasts`              | Air quality forecasts stored in MongoDB (populated by cron 5–10am)          |
-| `GET /measurements`           | Pollutant measurements stored in MongoDB                                    |
-| `GET /monitoringStationInfo`  | Monitoring station data via Ricardo API (requires credentials in back-end)  |
+| Endpoint                   | Description                                                                               |
+| :------------------------- | :---------------------------------------------------------------------------------------- |
+| `GET /health`              | Health check — used by the homepage connectivity banner                                   |
+| `GET /forecasts`           | Air quality forecasts stored in MongoDB (populated by cron 5–10am)                        |
+| `GET /measurements`        | Pollutant measurements stored in MongoDB                                                  |
+| `GET /monitoringStations`  | Cached monitoring station metadata from MongoDB (populated on startup, refreshed every 6 hours) |
 
 ### Deploying to CDP
 
