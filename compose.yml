@@ -1,0 +1,25 @@
+services:
+  aqie-maps-prototype:
+    build:
+      context: .
+      target: development
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      AQIE_BACK_END_URL: http://aqie-back-end:3001
+    networks:
+      - cdp-tenant
+    volumes:
+      - ./app:/home/node/app
+      - ./package.json:/home/node/package.json
+
+################################################################################
+
+networks:
+  cdp-tenant:
+    external: true
+    name: cdp-tenant

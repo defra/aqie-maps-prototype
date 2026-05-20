@@ -20,8 +20,12 @@ the [GOV.UK Frontend](https://github.com/alphagov/govuk-frontend).
   - [Environment Variables in the GOV.UK Prototype Kit](#environment-variables-in-the-govuk-prototype-kit)
   - [Secrets](#secrets)
 - [Creating a secret](#creating-a-secret)
+- [aqie-back-end service](#aqie-back-end-service)
+  - [Running locally](#running-locally)
+  - [Endpoints used](#endpoints-used)
+  - [Deploying to CDP](#deploying-to-cdp)
 - [Docker](#docker)
-  - [Development image](#development-image)
+  - [Docker Compose](#docker-compose)
   - [Production image](#production-image)
   - [Debug docker](#debug-docker)
 - [Licence](#licence)
@@ -194,25 +198,80 @@ the CDP Portal.
 1. Add a secret on your chosen environment with a `name` and `value` of your choosing
 1. Re-deploy your prototype for the new secrets to be made available to it
 
+## aqie-back-end service
+
+This prototype consumes data from the [aqie-back-end](https://github.com/DEFRA/aqie-back-end) service.
+You will need a running instance of it to see real data locally — without it the app will still load but
+the homepage will show a **Not Connected** banner.
+
+### Running locally
+
+The easiest way to run `aqie-back-end` locally is via its own Docker Compose file. From the `aqie-back-end`
+directory:
+
+```bash
+docker compose up --build
+```
+
+This starts `aqie-back-end` on port `3001` and creates the shared `cdp-tenant` Docker network that this prototype
+also joins (see [Docker Compose](#docker-compose)).
+
+Once it is running, verify connectivity:
+
+```bash
+curl http://localhost:3001/health
+```
+
+When running both services via Docker Compose, `AQIE_BACK_END_URL` is automatically set to
+`http://aqie-back-end:3001` using Docker's internal networking — no manual configuration needed.
+
+### Endpoints used
+
+| Endpoint                   | Description                                                                               |
+| :------------------------- | :---------------------------------------------------------------------------------------- |
+| `GET /health`              | Health check — used by the homepage connectivity banner                                   |
+| `GET /forecasts`           | Air quality forecasts stored in MongoDB (populated by cron 5–10am)                        |
+| `GET /measurements`        | Pollutant measurements stored in MongoDB                                                  |
+| `GET /monitoringStations`  | Cached monitoring station metadata from MongoDB (populated on startup, refreshed every 6 hours) |
+
+### Deploying to CDP
+
+When this prototype is deployed to a CDP environment the `AQIE_BACK_END_URL` environment variable must be
+set to the internal URL of the `aqie-back-end` service running in that environment (e.g. `http://aqie-back-end`).
+
+Add the variable via a pull request to the [cdp-app-config](https://github.com/DEFRA/cdp-app-config) repository.
+See [Environment Variables on CDP](#environment-variables-on-cdp) for step-by-step guidance.
+
 ## Docker
 
 For the most part you will not need to be concerned with `docker` when running this prototype. Everything is set up and
 your `docker` will automatically be built, published and pushed when you deploy a new version of your prototype via the
 UI in the CDP Portal.
 
-### Development image
+### Docker Compose
 
-Build:
+The recommended way to run this prototype locally alongside `aqie-back-end`. Both services join the shared
+`cdp-tenant` Docker network, so they can reach each other by service name.
+
+> [!IMPORTANT]
+> Start `aqie-back-end` first (via `docker compose up --build` in its directory) so the `cdp-tenant` network exists
+> before this prototype starts.
+
+Build and start:
 
 ```bash
-docker build --target development --no-cache --tag aqie-maps-prototype:development .
+docker compose up --build
 ```
 
-Run:
+Stop:
 
 ```bash
-docker run -e PORT=3000 -p 3000:3000 aqie-maps-prototype:development
+docker compose down
 ```
+
+The `AQIE_BACK_END_URL` is automatically set to `http://aqie-back-end:3001` inside the container. Other variables
+(e.g. `PASSWORD`) are loaded from your `.env` file — copy [.env.template](./.env.template) to `.env` if you
+haven't already.
 
 ### Production image
 
@@ -224,10 +283,16 @@ docker build --no-cache --tag aqie-maps-prototype .
 
 Run:
 
-> Update the password field to your password
+> Update the password field to your password. On Linux, `--add-host` is required so the container can reach `aqie-back-end` running on your host machine.
 
 ```bash
-docker run -e PASSWORD=beepBoopBeep -e PORT=3000 -p 3000:3000 aqie-maps-prototype
+docker run \
+  --add-host=host.docker.internal:host-gateway \
+  -e PASSWORD=beepBoopBeep \
+  -e PORT=3000 \
+  -e AQIE_BACK_END_URL=http://host.docker.internal:3001 \
+  -p 3000:3000 \
+  aqie-maps-prototype
 ```
 
 ### Debug docker

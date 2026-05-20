@@ -1,0 +1,17 @@
+{% extends "govuk-prototype-kit/layouts/govuk-branded.njk" %}
+
+{# Suppress GOV.UK header, nav and footer for the full-screen map page #}
+{% block header %}{% endblock %}
+{% block beforeContent %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+  /* Make the entire page body fill the viewport with no overflow */
+  .govuk-template          { height: 100vh; overflow: hidden; }
+  .govuk-template__body    { position: fixed; overflow: hidden; inset: 0; }
+  .govuk-main-wrapper      { padding: 0 !important; height: 100%; }
+  .govuk-width-container   { max-width: none !important; padding: 0 !important; margin: 0 !important; height: 100%; }
+</style>
+{% endblock %}
