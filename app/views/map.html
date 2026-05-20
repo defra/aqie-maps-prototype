@@ -17,69 +17,20 @@
 <div class="aq-map-container">
   <div id="map"></div>
 
-  <button class="aq-map__exit" id="exit-map" type="button" onclick="history.back()">
+  <button class="aq-map__exit" id="exit-map" type="button">
     <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
       <path d="M4.828,11L12.314,18.485L10.899,19.899L1,10L10.899,0.101L12.314,1.515L4.828,9L19,9L19,11L4.828,11Z" />
     </svg>
     <span>Exit map</span>
   </button>
 
-  <div id="map-key-overlay" class="aq-map-key" role="region" aria-label="Map key">
-    <button id="map-key-close" class="aq-map-key__close" aria-label="Close map key">
-      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-        <path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z" />
-      </svg>
-      <span class="govuk-visually-hidden">Close map key</span>
-    </button>
-    <div class="aq-map-key__body">
-      <h2 class="govuk-heading-s govuk-!-margin-bottom-1">Map key</h2>
-      <p class="govuk-body-s govuk-!-margin-bottom-2" id="map-key-subtitle">Daily Air Quality Index (DAQI)</p>
-      <div id="map-key-body"></div>
-    </div>
-  </div>
-  <!-- Filter panel - search by pollutant -->
-  <div id="filter-panel" class="aq-filter-panel" role="region" aria-label="Search by pollutant" tabindex="-1">
-    <button id="filter-panel-close" class="aq-filter-panel__close" aria-label="Close filter panel">
-      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-        <path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z" />
-      </svg>
-      <span class="govuk-visually-hidden">Close filter panel</span>
-    </button>
-    <div class="aq-filter-panel__body">
-      <h2 class="govuk-heading-s govuk-!-margin-bottom-2">Search by pollutant</h2>
-      <div class="aq-filter-panel__tabs" role="group" aria-label="Pollutant category">
-        <button class="aq-filter-panel__tab aq-filter-panel__tab--active" id="filter-tab-daqi" aria-pressed="true">
-          <span>DAQI pollutants</span>
-        </button>
-        <button class="aq-filter-panel__tab" id="filter-tab-other" aria-pressed="false">
-          <span>Other pollutants</span>
-        </button>
-      </div>
-      <div class="aq-filter-panel__scroll">
-        <div id="filter-mount"></div>
-      </div>
-    </div>
-  </div>
+  <!-- Map key - populated by map.js -->
+  <div id="map-key-overlay" class="aq-map-key" role="region" aria-label="Map key"></div>
+  <!-- Filter panel - populated by map.js -->
+  <div id="filter-panel" class="aq-filter-panel" role="region" aria-label="Search by pollutant" tabindex="-1"></div>
 
-  <div class="reopen-stack" aria-label="Map actions">
-    <button class="aq-map__menu reopen-btn" id="filter-button" aria-label="Open map menu" hidden>
-      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-        <path d="M17.215,11.31L19,12.5L10,18.5L1,12.5L2.785,11.31L9.945,16.083C9.978,16.106 10.022,16.106 10.055,16.083L17.215,11.31Z" style="fill:currentColor;"></path>
-        <path d="M10,1.5L1,7.5L10,14.5L19,7.5L10,1.5ZM10,3.88L15.43,7.5L10,11.12L4.57,7.5L10,3.88Z" style="fill:currentColor;"></path>
-      </svg>
-      <span class="reopen-text">Menu</span>
-    </button>
-    <button class="aq-map__menu reopen-btn" id="key-button" aria-label="Toggle map key">
-      <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20" fill-rule="evenodd"
-        fill="currentColor">
-        <circle cx="3.5" cy="4" r="1.5"></circle>
-        <circle cx="3.5" cy="10" r="1.5"></circle>
-        <circle cx="3.5" cy="16" r="1.5"></circle>
-        <path d="M7 4h11M7 10h11M7 16h11" fill="none" stroke="currentColor" stroke-width="2"></path>
-      </svg>
-      <span class="reopen-text">Key</span>
-    </button>
-  </div>
+  <!-- Reopen stack - populated by map.js -->
+  <div class="reopen-stack" aria-label="Map actions"></div>
 
   {% include "includes/station-panel.html" %}
 </div>

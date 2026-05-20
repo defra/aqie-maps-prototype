@@ -20,7 +20,19 @@
   var _selectedId = null
   var _pendingNav = null
 
-  // Fetch measurements to derive per-station pollutant lists
+  var _DAQI_POLLUTANTS = [
+    { label: 'Fine particulate matter (PM2.5)', codes: ['PM25', 'GR25'] },
+    { label: 'Particulate matter (PM10)',        codes: ['GE10', 'GR10'] },
+    { label: 'Nitrogen dioxide (NO2)',           codes: ['NO2'] },
+    { label: 'Ozone (O3)',                       codes: ['O3'] },
+    { label: 'Sulphur dioxide (SO2)',            codes: ['SO2'] }
+  ]
+  var _filterState = {
+    mode: 'daqi',
+    selected: new Set(['NO2', 'O3', 'SO2', 'PM25', 'GE10', 'GR10', 'GR25'])
+  }
+  var _plottedIds = new Set()
+
   fetch('/measurements')
     .then(function (r) { return r.ok ? r.json() : null })
     .then(function (data) {
@@ -31,10 +43,11 @@
       list.forEach(function (m) {
         if (m.name) _measurementsMap[m.name.trim().toLowerCase()] = m
       })
+      // Re-plot now that pollutant data is available for accurate filtering
+      if (_mapReady && _stationList) _plotAllMarkers()
     })
     .catch(function () { /* measurements optional */ })
 
-  // Fetch forecasts in parallel — used to colour markers and enrich the station panel
   fetch('/forecasts')
     .then(function (r) { return r.ok ? r.json() : null })
     .then(function (data) {
@@ -94,13 +107,39 @@
     return null
   }
 
+  // Falls back to visible when measurement data has not yet loaded for a station.
+  function _stationMatchesFilter(station) {
+    if (_filterState.mode === 'other') return true
+    if (_filterState.selected.size === 0) return false
+    var stationName = (station.name || '').trim().toLowerCase()
+    var measured = _measurementsMap[stationName]
+    if (!measured) return true  // no data yet — keep station visible
+    var codes = Object.keys(measured.pollutants || {})
+    if (codes.length === 0) return true
+    return codes.some(function (c) { return _filterState.selected.has(c) })
+  }
+
   function _plotAllMarkers() {
+    var nextPlotted = new Set()
     _stationList.forEach(function (s) {
       if (!s.location || !Array.isArray(s.location.coordinates)) return
       var id = 'ms-' + s.localSiteID
-      if (id === _selectedId) return
-      window.interactiveMap.addMarker(id, _stationCoords(s), _daqiMarkerOptions(_stationDaqi(s), false))
+      // Always keep the currently selected station on the map
+      if (id === _selectedId) {
+        nextPlotted.add(id)
+        return
+      }
+      if (_stationMatchesFilter(s)) {
+        window.interactiveMap.addMarker(id, _stationCoords(s), _daqiMarkerOptions(_stationDaqi(s), false))
+        nextPlotted.add(id)
+      }
     })
+    _plottedIds.forEach(function (id) {
+      if (!nextPlotted.has(id)) {
+        window.interactiveMap.removeMarker(id)
+      }
+    })
+    _plottedIds = nextPlotted
   }
 
   function _highlightStation(station) {
@@ -227,7 +266,6 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   }
 
-  // MAP_CLICK: highlight the nearest station if the click is within ~0.1 degrees
   window.interactiveMap.on('map:click', function (evt) {
     if (!_stationList || !evt || !evt.coords) return
     var clickLng = evt.coords[0]
@@ -254,7 +292,6 @@
     }
   }
 
-  // Map key / legend panel
   function _renderKeyOverlay() {
     var body = document.getElementById('map-key-body')
     if (!body) return
@@ -308,25 +345,165 @@
     }
   }
 
-  _renderKeyOverlay()
-
-  document.getElementById('map-key-close').addEventListener('click', function () {
-    _hideKeyOverlay(true)
-  })
-
-  document.getElementById('key-button').addEventListener('click', function () {
-    var overlay = document.getElementById('map-key-overlay')
-    if (overlay && overlay.hidden) {
-      _keyClosedByUser = false
-      _showKeyOverlay()
-    } else {
-      _hideKeyOverlay(true)
-    }
-  })
-
   var _spClose = document.getElementById('sp-close')
   _spClose.addEventListener('click', function () {
     document.getElementById('station-panel').classList.remove('visible')
     if (!_keyClosedByUser) _showKeyOverlay()
+  })
+
+  function _initKeyOverlay() {
+    var overlay = document.getElementById('map-key-overlay')
+    if (!overlay) return
+    overlay.innerHTML =
+      '<button id="map-key-close" class="aq-map-key__close" aria-label="Close map key">'
+      + '<svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">'
+      + '<path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z"/>'
+      + '</svg>'
+      + '<span class="govuk-visually-hidden">Close map key</span>'
+      + '</button>'
+      + '<div class="aq-map-key__body">'
+      + '<h2 class="govuk-heading-s govuk-!-margin-bottom-1">Map key</h2>'
+      + '<p class="govuk-body-s govuk-!-margin-bottom-2" id="map-key-subtitle">Daily Air Quality Index (DAQI)</p>'
+      + '<div id="map-key-body"></div>'
+      + '</div>'
+    _renderKeyOverlay()
+    document.getElementById('map-key-close').addEventListener('click', function () {
+      _hideKeyOverlay(true)
+    })
+  }
+
+  function _initReopenStack() {
+    var stack = document.querySelector('.reopen-stack')
+    if (!stack) return
+    stack.innerHTML =
+      '<button class="aq-map__menu reopen-btn" id="filter-button" aria-label="Open map menu" hidden>'
+      + '<svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">'
+      + '<path d="M17.215,11.31L19,12.5L10,18.5L1,12.5L2.785,11.31L9.945,16.083C9.978,16.106 10.022,16.106 10.055,16.083L17.215,11.31Z" style="fill:currentColor;"></path>'
+      + '<path d="M10,1.5L1,7.5L10,14.5L19,7.5L10,1.5ZM10,3.88L15.43,7.5L10,11.12L4.57,7.5L10,3.88Z" style="fill:currentColor;"></path>'
+      + '</svg>'
+      + '<span class="reopen-text">Menu</span>'
+      + '</button>'
+      + '<button class="aq-map__menu reopen-btn" id="key-button" aria-label="Toggle map key">'
+      + '<svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20" fill-rule="evenodd" fill="currentColor">'
+      + '<circle cx="3.5" cy="4" r="1.5"></circle>'
+      + '<circle cx="3.5" cy="10" r="1.5"></circle>'
+      + '<circle cx="3.5" cy="16" r="1.5"></circle>'
+      + '<path d="M7 4h11M7 10h11M7 16h11" fill="none" stroke="currentColor" stroke-width="2"></path>'
+      + '</svg>'
+      + '<span class="reopen-text">Key</span>'
+      + '</button>'
+    document.getElementById('key-button').addEventListener('click', function () {
+      var overlay = document.getElementById('map-key-overlay')
+      if (overlay && overlay.hidden) {
+        _keyClosedByUser = false
+        _showKeyOverlay()
+      } else {
+        _hideKeyOverlay(true)
+      }
+    })
+  }
+
+  function _initFilterPanel() {
+    var panel = document.getElementById('filter-panel')
+    if (!panel) return
+
+    panel.innerHTML =
+      '<button id="filter-panel-close" class="aq-filter-panel__close" aria-label="Close filter panel">'
+      + '<svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">'
+      + '<path d="M10,8.6L15.6,3L17,4.4L11.4,10L17,15.6L15.6,17L10,11.4L4.4,17L3,15.6L8.6,10L3,4.4L4.4,3L10,8.6Z"/>'
+      + '</svg>'
+      + '<span class="govuk-visually-hidden">Close filter panel</span>'
+      + '</button>'
+      + '<div class="aq-filter-panel__body">'
+      + '<p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">Search by pollutant</p>'
+      + '<div class="aq-filter-panel__tabs" role="group" aria-label="Pollutant category">'
+      + '<button class="aq-filter-panel__tab aq-filter-panel__tab--active" id="filter-tab-daqi" aria-pressed="true"><span>DAQI pollutants</span></button>'
+      + '<button class="aq-filter-panel__tab" id="filter-tab-other" aria-pressed="false"><span>Other pollutants</span></button>'
+      + '</div>'
+      + '<div class="aq-filter-panel__scroll"><div id="filter-mount"></div></div>'
+      + '</div>'
+
+    _renderFilterDaqi()
+
+    var closeBtn = document.getElementById('filter-panel-close')
+    var reopenBtn = document.getElementById('filter-button')
+    var tabDaqi = document.getElementById('filter-tab-daqi')
+    var tabOther = document.getElementById('filter-tab-other')
+
+    closeBtn.addEventListener('click', function () {
+      panel.hidden = true
+      reopenBtn.hidden = false
+      reopenBtn.focus()
+    })
+
+    reopenBtn.addEventListener('click', function () {
+      panel.hidden = false
+      reopenBtn.hidden = true
+      panel.focus()
+    })
+
+    tabDaqi.addEventListener('click', function () {
+      _filterState.mode = 'daqi'
+      tabDaqi.setAttribute('aria-pressed', 'true')
+      tabOther.setAttribute('aria-pressed', 'false')
+      _renderFilterDaqi()
+      if (_mapReady && _stationList) _plotAllMarkers()
+    })
+
+    tabOther.addEventListener('click', function () {
+      _filterState.mode = 'other'
+      tabOther.setAttribute('aria-pressed', 'true')
+      tabDaqi.setAttribute('aria-pressed', 'false')
+      _renderFilterOther()
+      if (_mapReady && _stationList) _plotAllMarkers()
+    })
+  }
+
+  function _renderFilterDaqi() {
+    var mount = document.getElementById('filter-mount')
+    if (!mount) return
+
+    var items = _DAQI_POLLUTANTS.map(function (p, i) {
+      var id = 'filter-pollutant-' + i
+      var checked = p.codes.every(function (c) { return _filterState.selected.has(c) })
+      return '<div class="govuk-checkboxes__item">'
+        + '<input class="govuk-checkboxes__input" id="' + id + '" type="checkbox" value="' + p.codes.join(',') + '"' + (checked ? ' checked' : '') + '>'
+        + '<label class="govuk-label govuk-checkboxes__label" for="' + id + '">' + p.label + '</label>'
+        + '</div>'
+    }).join('')
+
+    mount.innerHTML = '<fieldset class="govuk-fieldset">'
+      + '<legend class="govuk-visually-hidden">Select pollutants to display on the map</legend>'
+      + '<div class="govuk-checkboxes govuk-checkboxes--small">' + items + '</div>'
+      + '</fieldset>'
+
+    // Bind change handler once using a flag on the scroll container
+    var scroll = document.querySelector('.aq-filter-panel__scroll')
+    if (scroll && !scroll.dataset.filterBound) {
+      scroll.addEventListener('change', function (e) {
+        if (!e.target || e.target.type !== 'checkbox') return
+        var codes = e.target.value.split(',')
+        if (e.target.checked) {
+          codes.forEach(function (c) { _filterState.selected.add(c) })
+        } else {
+          codes.forEach(function (c) { _filterState.selected.delete(c) })
+        }
+        if (_mapReady && _stationList) _plotAllMarkers()
+      })
+      scroll.dataset.filterBound = 'true'
+    }
+  }
+
+  function _renderFilterOther() {
+    var mount = document.getElementById('filter-mount')
+    if (!mount) return
+    mount.innerHTML = '<p class="govuk-body-s govuk-!-margin-top-2">Other pollutant networks are not yet available in this prototype.</p>'
+  }
+
+  _initKeyOverlay()
+  _initReopenStack()
+  _initFilterPanel()
+  document.getElementById('exit-map').addEventListener('click', function () {
+    history.back()
   })
 })()
