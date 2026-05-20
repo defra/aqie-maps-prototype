@@ -36,6 +36,10 @@ async function getMeasurements() {
   return get('/measurements')
 }
 
+async function getMonitoringStations() {
+  return get('/monitoringStations')
+}
+
 async function getMonitoringStationInfo() {
   return get('/monitoringStationInfo', 120000)
 }
@@ -44,5 +48,6 @@ module.exports = {
   checkHealth,
   getForecasts,
   getMeasurements,
+  getMonitoringStations,
   getMonitoringStationInfo
 }

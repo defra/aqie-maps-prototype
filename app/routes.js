@@ -10,6 +10,7 @@ const {
   checkHealth,
   getForecasts,
   getMeasurements,
+  getMonitoringStations,
   getMonitoringStationInfo
 } = require('./api/aqieBackEnd')
 
@@ -46,6 +47,15 @@ router.get('/forecasts', async (req, res) => {
 router.get('/measurements', async (req, res) => {
   const data = await getMeasurements()
   res.json(data)
+})
+
+router.get('/monitoringStations', async (req, res) => {
+  try {
+    const data = await getMonitoringStations()
+    res.json(data)
+  } catch (err) {
+    res.status(502).json({ error: err.message })
+  }
 })
 
 router.get('/monitoringStationInfo', async (req, res) => {

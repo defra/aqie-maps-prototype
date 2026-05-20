@@ -1,6 +1,6 @@
 ; (function () {
   // Load station list asynchronously so the page doesn't block
-  fetch('/monitoringStationInfo', { signal: AbortSignal.timeout(90000) })
+  fetch('/monitoringStations', { signal: AbortSignal.timeout(10000) })
     .then(function (r) {
       if (!r.ok) return r.json().then(function (body) { throw new Error(body.error || 'Status ' + r.status) })
       return r.json()
