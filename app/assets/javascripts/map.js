@@ -32,16 +32,17 @@
     selected: new Set(['NO2', 'O3', 'SO2', 'PM25', 'GE10', 'GR10', 'GR25'])
   }
   var _plottedIds = new Set()
+  var _showInactiveStations = true
 
   fetch('/measurements')
-    .then(function (r) { return r.ok ? r.json() : null })
+    .then(function (response) { return response.ok ? response.json() : null })
     .then(function (data) {
       if (!data) return
       var list = Array.isArray(data) ? data
         : Array.isArray(data.measurements) ? data.measurements
           : []
-      list.forEach(function (m) {
-        if (m.name) _measurementsMap[m.name.trim().toLowerCase()] = m
+      list.forEach(function (measurement) {
+        if (measurement.name) _measurementsMap[measurement.name.trim().toLowerCase()] = measurement
       })
       // Re-plot now that pollutant data is available for accurate filtering
       if (_mapReady && _stationList) _plotAllMarkers()
@@ -49,7 +50,7 @@
     .catch(function () { /* measurements optional */ })
 
   fetch('/forecasts')
-    .then(function (r) { return r.ok ? r.json() : null })
+    .then(function (response) { return response.ok ? response.json() : null })
     .then(function (data) {
       if (!data) return
       _forecastList = Array.isArray(data) ? data
@@ -109,6 +110,10 @@
 
   // Falls back to visible when measurement data has not yet loaded for a station.
   function _stationMatchesFilter(station) {
+    if (!_showInactiveStations) {
+      var status = (station.stationStatus || station.status || station.siteStatus || '').toLowerCase()
+      if (status && status !== 'current' && status !== 'active') return false
+    }
     if (_filterState.mode === 'other') return true
     if (_filterState.selected.size === 0) return false
     var stationName = (station.name || '').trim().toLowerCase()
@@ -116,21 +121,21 @@
     if (!measured) return true  // no data yet — keep station visible
     var codes = Object.keys(measured.pollutants || {})
     if (codes.length === 0) return true
-    return codes.some(function (c) { return _filterState.selected.has(c) })
+    return codes.some(function (code) { return _filterState.selected.has(code) })
   }
 
   function _plotAllMarkers() {
     var nextPlotted = new Set()
-    _stationList.forEach(function (s) {
-      if (!s.location || !Array.isArray(s.location.coordinates)) return
-      var id = 'ms-' + s.localSiteID
+    _stationList.forEach(function (station) {
+      if (!station.location || !Array.isArray(station.location.coordinates)) return
+      var id = 'ms-' + station.localSiteID
       // Always keep the currently selected station on the map
       if (id === _selectedId) {
         nextPlotted.add(id)
         return
       }
-      if (_stationMatchesFilter(s)) {
-        window.interactiveMap.addMarker(id, _stationCoords(s), _daqiMarkerOptions(_stationDaqi(s), false))
+      if (_stationMatchesFilter(station)) {
+        window.interactiveMap.addMarker(id, _stationCoords(station), _daqiMarkerOptions(_stationDaqi(station), false))
         nextPlotted.add(id)
       }
     })
@@ -144,7 +149,7 @@
 
   function _highlightStation(station) {
     if (_selectedId && _stationList) {
-      var prev = _stationList.find(function (s) { return 'ms-' + s.localSiteID === _selectedId })
+      var prev = _stationList.find(function (candidate) { return 'ms-' + candidate.localSiteID === _selectedId })
       if (prev) {
         window.interactiveMap.addMarker(_selectedId, _stationCoords(prev), _daqiMarkerOptions(_stationDaqi(prev), false))
       }
@@ -180,21 +185,21 @@
     var sLng = parseFloat(station.location.coordinates[1])
     var best = null
     var bestDist = 0.05 * 0.05
-    _forecastList.forEach(function (f) {
-      if (!f.location || !Array.isArray(f.location.coordinates)) return
-      var fLat = parseFloat(f.location.coordinates[0])
-      var fLng = parseFloat(f.location.coordinates[1])
-      var d = (fLat - sLat) * (fLat - sLat) + (fLng - sLng) * (fLng - sLng)
-      if (d < bestDist) { bestDist = d; best = f }
+    _forecastList.forEach(function (forecastEntry) {
+      if (!forecastEntry.location || !Array.isArray(forecastEntry.location.coordinates)) return
+      var fLat = parseFloat(forecastEntry.location.coordinates[0])
+      var fLng = parseFloat(forecastEntry.location.coordinates[1])
+      var squaredDist = (fLat - sLat) * (fLat - sLat) + (fLng - sLng) * (fLng - sLng)
+      if (squaredDist < bestDist) { bestDist = squaredDist; best = forecastEntry }
     })
     return best
   }
 
   function _formatDate(dateStr) {
     if (!dateStr) return ''
-    var d = new Date(dateStr)
-    if (isNaN(d.getTime())) return dateStr
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    var date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
   function _showStationPanel(station) {
@@ -218,9 +223,9 @@
     // Derive pollutant list from measurements data joined on station name
     var measured = (_measurementsMap[(station.name || '').trim().toLowerCase()] || {}).pollutants || {}
     var seen = []
-    Object.keys(_POLLUTANT_LABELS).forEach(function (k) {
-      if (measured[k] !== undefined) {
-        var label = _POLLUTANT_LABELS[k]
+    Object.keys(_POLLUTANT_LABELS).forEach(function (pollutantCode) {
+      if (measured[pollutantCode] !== undefined) {
+        var label = _POLLUTANT_LABELS[pollutantCode]
         if (seen.indexOf(label) === -1) seen.push(label)
       }
     })
@@ -238,23 +243,29 @@
       }
     }
 
-    var authority = station.localAuthority || station.localAuthorityName || station.authority || station.owner || ''
-    rows.push(['Local authority', authority || 'Not available'])
+    rows.push(['Local authority', 'Not available'])
     if (station.areaType) rows.push(['Site type', station.areaType])
 
-    var startDate = station.startDate || station.openingDate || station.dateOpened || ''
+    // startDate comes from the earliest pollutant startDate in measurements data
+    var pollutantDates = Object.keys(measured).map(function (pollutantCode) { return measured[pollutantCode].startDate || '' })
+      .filter(function (dateValue) { return dateValue && dateValue !== 'null' })
+    pollutantDates.sort()
+    var startDate = pollutantDates[0] || ''
     rows.push(['Start date', startDate ? _formatDate(startDate) : 'Not available'])
 
     if (isClosed) {
-      var endDate = station.endDate || station.closingDate || station.dateClosed || ''
+      var pollutantEndDates = Object.keys(measured).map(function (pollutantCode) { return measured[pollutantCode].endDate || '' })
+        .filter(function (dateValue) { return dateValue && dateValue !== 'null' })
+      pollutantEndDates.sort()
+      var endDate = pollutantEndDates[pollutantEndDates.length - 1] || ''
       rows.push(['End date', endDate ? _formatDate(endDate) : 'Not available'])
     }
 
     var dl = document.getElementById('sp-details')
-    dl.innerHTML = rows.map(function (r) {
+    dl.innerHTML = rows.map(function (row) {
       return '<div class="aq-station-info-row">'
-        + '<dt>' + _escapeHtml(r[0]) + ':</dt> '
-        + '<dd>' + (r[2] ? r[1] : _escapeHtml(String(r[1]))) + '</dd>'
+        + '<dt>' + _escapeHtml(row[0]) + ':</dt> '
+        + '<dd>' + (row[2] ? row[1] : _escapeHtml(String(row[1]))) + '</dd>'
         + '</div>'
     }).join('')
 
@@ -272,12 +283,12 @@
     var clickLat = evt.coords[1]
     var best = null
     var bestDist = Infinity
-    _stationList.forEach(function (s) {
-      if (!s.location || !Array.isArray(s.location.coordinates)) return
-      var lat = parseFloat(s.location.coordinates[0])
-      var lng = parseFloat(s.location.coordinates[1])
-      var d = (lng - clickLng) * (lng - clickLng) + (lat - clickLat) * (lat - clickLat)
-      if (d < bestDist) { bestDist = d; best = s }
+    _stationList.forEach(function (station) {
+      if (!station.location || !Array.isArray(station.location.coordinates)) return
+      var lat = parseFloat(station.location.coordinates[0])
+      var lng = parseFloat(station.location.coordinates[1])
+      var squaredDist = (lng - clickLng) * (lng - clickLng) + (lat - clickLat) * (lat - clickLat)
+      if (squaredDist < bestDist) { bestDist = squaredDist; best = station }
     })
     // sqrt(0.01) ≈ 0.1 degrees ≈ 11 km — reasonable click target at mid zoom
     if (best && bestDist < 0.01) _highlightStation(best)
@@ -420,7 +431,7 @@
       + '<button class="aq-filter-panel__tab aq-filter-panel__tab--active" id="filter-tab-daqi" aria-pressed="true"><span>DAQI pollutants</span></button>'
       + '<button class="aq-filter-panel__tab" id="filter-tab-other" aria-pressed="false"><span>Other pollutants</span></button>'
       + '</div>'
-      + '<div class="aq-filter-panel__scroll"><div id="filter-mount"></div></div>'
+      + '<div class="aq-filter-panel__scroll"><div id="filter-mount"></div><div id="filter-sections"></div></div>'
       + '</div>'
 
     _renderFilterDaqi()
@@ -463,12 +474,12 @@
     var mount = document.getElementById('filter-mount')
     if (!mount) return
 
-    var items = _DAQI_POLLUTANTS.map(function (p, i) {
+    var items = _DAQI_POLLUTANTS.map(function (pollutant, i) {
       var id = 'filter-pollutant-' + i
-      var checked = p.codes.every(function (c) { return _filterState.selected.has(c) })
+      var checked = pollutant.codes.every(function (code) { return _filterState.selected.has(code) })
       return '<div class="govuk-checkboxes__item">'
-        + '<input class="govuk-checkboxes__input" id="' + id + '" type="checkbox" value="' + p.codes.join(',') + '"' + (checked ? ' checked' : '') + '>'
-        + '<label class="govuk-label govuk-checkboxes__label" for="' + id + '">' + p.label + '</label>'
+        + '<input class="govuk-checkboxes__input" id="' + id + '" type="checkbox" value="' + pollutant.codes.join(',') + '"' + (checked ? ' checked' : '') + '>'
+        + '<label class="govuk-label govuk-checkboxes__label" for="' + id + '">' + pollutant.label + '</label>'
         + '</div>'
     }).join('')
 
@@ -477,16 +488,22 @@
       + '<div class="govuk-checkboxes govuk-checkboxes--small">' + items + '</div>'
       + '</fieldset>'
 
+    _renderFilterSections()
+
     // Bind change handler once using a flag on the scroll container
     var scroll = document.querySelector('.aq-filter-panel__scroll')
     if (scroll && !scroll.dataset.filterBound) {
-      scroll.addEventListener('change', function (e) {
-        if (!e.target || e.target.type !== 'checkbox') return
-        var codes = e.target.value.split(',')
-        if (e.target.checked) {
-          codes.forEach(function (c) { _filterState.selected.add(c) })
+      scroll.addEventListener('change', function (event) {
+        if (!event.target || event.target.type !== 'checkbox') return
+        if (event.target.id === 'filter-show-inactive') {
+          _showInactiveStations = event.target.checked
         } else {
-          codes.forEach(function (c) { _filterState.selected.delete(c) })
+          var codes = event.target.value.split(',')
+          if (event.target.checked) {
+            codes.forEach(function (code) { _filterState.selected.add(code) })
+          } else {
+            codes.forEach(function (code) { _filterState.selected.delete(code) })
+          }
         }
         if (_mapReady && _stationList) _plotAllMarkers()
       })
@@ -494,10 +511,38 @@
     }
   }
 
+  function _renderFilterSections() {
+    var sections = document.getElementById('filter-sections')
+    if (!sections) return
+    sections.innerHTML =
+      '<details class="govuk-details govuk-!-margin-top-3 govuk-!-margin-bottom-0">'
+      + '<summary class="govuk-details__summary">'
+      + '<span class="govuk-details__summary-text">Data sources</span>'
+      + '</summary>'
+      + '<div class="govuk-details__text">'
+      + '<p class="govuk-body-s govuk-!-margin-bottom-0">Automatic Urban and Rural Network (AURN)</p>'
+      + '</div>'
+      + '</details>'
+      + '<details class="govuk-details govuk-!-margin-top-2 govuk-!-margin-bottom-0">'
+      + '<summary class="govuk-details__summary">'
+      + '<span class="govuk-details__summary-text">Map features</span>'
+      + '</summary>'
+      + '<div class="govuk-details__text">'
+      + '<div class="govuk-checkboxes govuk-checkboxes--small">'
+      + '<div class="govuk-checkboxes__item">'
+      + '<input class="govuk-checkboxes__input" id="filter-show-inactive" type="checkbox"' + (_showInactiveStations ? ' checked' : '') + '>'
+      + '<label class="govuk-label govuk-checkboxes__label" for="filter-show-inactive">Show closed and inactive stations</label>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
+      + '</details>'
+  }
+
   function _renderFilterOther() {
     var mount = document.getElementById('filter-mount')
     if (!mount) return
     mount.innerHTML = '<p class="govuk-body-s govuk-!-margin-top-2">Other pollutant networks are not yet available in this prototype.</p>'
+    _renderFilterSections()
   }
 
   _initKeyOverlay()

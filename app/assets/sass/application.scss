@@ -3,6 +3,12 @@
 // https://prototype-kit.service.gov.uk/docs/adding-css-javascript-and-images
 // 
 
+// govuk-frontend's [hidden]{display:none} lacks !important, so author-level class rules
+// like display:inline-flex can override it. Re-assert it here to keep hidden reliable.
+[hidden] {
+  display: none !important;
+}
+
 // Map container and key overlay
 .aq-map-container {
   position: relative;
@@ -299,7 +305,7 @@
   top: 10px;
   right: 10px;
   z-index: 100;
-  width: 350px;
+  width: 450px;
   max-height: calc(100vh - 20px);
   border: 2px solid #0b0c0c;
   background-color: #ffffff;
@@ -341,6 +347,8 @@
   padding: 18px;
   padding-right: 50px;
   font-family: "GDS Transport", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.25;
 }
 
 .aq-filter-panel__tabs {
