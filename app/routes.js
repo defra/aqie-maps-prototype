@@ -11,7 +11,8 @@ const {
   getForecasts,
   getMeasurements,
   getMonitoringStations,
-  getMonitoringStationInfo
+  getMonitoringStationInfo,
+  getLocalAuthorityForCoords
 } = require('./api/aqieBackEnd')
 
 // Home — landing page with View on a map link
@@ -67,5 +68,19 @@ router.get('/monitoringStationInfo', async (req, res) => {
       ? 'Connection timeout'
       : err.message
     res.status(502).json({ error: message })
+  }
+})
+
+router.get('/api/local-authority', async (req, res) => {
+  const lat = parseFloat(req.query.lat)
+  const lng = parseFloat(req.query.lng)
+  if (isNaN(lat) || isNaN(lng) || lat < 49 || lat > 61 || lng < -9 || lng > 2) {
+    return res.status(400).json({ error: 'Invalid coordinates' })
+  }
+  try {
+    const localAuthority = await getLocalAuthorityForCoords(lat, lng)
+    res.json({ localAuthority: localAuthority || null })
+  } catch (err) {
+    res.status(502).json({ error: err.message })
   }
 })
