@@ -243,7 +243,7 @@
       }
     }
 
-    rows.push(['Local authority', ''])
+    rows.push(['Local authority', station.localAuthority || 'Not available'])
     if (station.areaType) rows.push(['Site type', station.areaType])
 
     // startDate comes from the earliest pollutant startDate in measurements data
@@ -272,24 +272,6 @@
     panel.classList.add('visible')
     _hideKeyOverlay(false)
 
-    // Async: resolve local authority from coordinates via OS Names
-    var stationLat = parseFloat(station.location.coordinates[0])
-    var stationLng = parseFloat(station.location.coordinates[1])
-    fetch('/api/local-authority?lat=' + stationLat + '&lng=' + stationLng)
-      .then(function (r) { return r.ok ? r.json() : null })
-      .then(function (data) {
-        // Only update if the same panel is still open (user hasn't clicked another station)
-        if (!panel.classList.contains('visible') || document.getElementById('sp-name').textContent.indexOf(station.name) === -1) return
-        var laValue = (data && data.localAuthority) ? data.localAuthority : 'Not available'
-        var rows = dl.querySelectorAll('.aq-station-info-row')
-        rows.forEach(function (row) {
-          var dt = row.querySelector('dt')
-          if (dt && dt.textContent.replace(':', '').trim() === 'Local authority') {
-            row.querySelector('dd').textContent = laValue
-          }
-        })
-      })
-      .catch(function () { /* leave as Not available */ })
   }
 
   function _escapeHtml(str) {
