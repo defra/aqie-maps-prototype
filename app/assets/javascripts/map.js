@@ -22,10 +22,10 @@
 
   var _DAQI_POLLUTANTS = [
     { label: 'Fine particulate matter (PM2.5)', codes: ['PM25', 'GR25'] },
-    { label: 'Particulate matter (PM10)',        codes: ['GE10', 'GR10'] },
-    { label: 'Nitrogen dioxide (NO2)',           codes: ['NO2'] },
-    { label: 'Ozone (O3)',                       codes: ['O3'] },
-    { label: 'Sulphur dioxide (SO2)',            codes: ['SO2'] }
+    { label: 'Particulate matter (PM10)', codes: ['GE10', 'GR10'] },
+    { label: 'Nitrogen dioxide (NO2)', codes: ['NO2'] },
+    { label: 'Ozone (O3)', codes: ['O3'] },
+    { label: 'Sulphur dioxide (SO2)', codes: ['SO2'] }
   ]
   var _filterState = {
     mode: 'daqi',
