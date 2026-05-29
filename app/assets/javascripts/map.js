@@ -101,6 +101,8 @@
   }
 
   function _stationDaqi(station) {
+    var status = (station.stationStatus || station.status || station.siteStatus || '').toLowerCase()
+    if (status === 'closed') return null
     var forecast = _forecastForStation(station)
     if (forecast && Array.isArray(forecast.forecast) && forecast.forecast.length > 0) {
       return forecast.forecast[0].value
