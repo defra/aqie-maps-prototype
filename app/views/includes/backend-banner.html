@@ -2,12 +2,21 @@
   <div class="govuk-grid-column-full">
     <div id="backend-banner"
       style="border-left: 5px solid {{ '#00703c' if backendConnected else '#d4351c' }}; padding: 15px 20px; background: {{ '#f3faf3' if backendConnected else '#fff5f5' }}; margin-bottom: 30px;">
-      <p class="govuk-body govuk-!-margin-bottom-0">
+      <p class="govuk-body govuk-!-margin-bottom-2">
         <strong>aqie-back-end</strong> &mdash; <code id="backend-url">{{ backendUrl }}</code>
         <strong id="backend-tag"
-          class="govuk-tag {% if backendConnected %}govuk-tag--green{% else %}govuk-tag--red{% endif %} govuk-!-margin-left-2">{%
-          if backendConnected %}Connected{% else %}Not Connected{% endif %}</strong>
+          class="govuk-tag {% if backendConnected %}govuk-tag--green{% else %}govuk-tag--red{% endif %} govuk-!-margin-left-2">{% if backendConnected %}Connected{% else %}Not Connected{% endif %}</strong>
       </p>
+      <div id="endpoint-status" style="display: flex; flex-wrap: wrap; gap: 8px;">
+        {% for ep in endpoints %}
+        <span style="font-family: monospace; font-size: 0.875rem;">
+          {{ ep.name }}
+          <strong class="govuk-tag {% if ep.ok %}govuk-tag--green{% else %}govuk-tag--red{% endif %}">
+            {% if ep.ok %}OK{% if ep.count != null %} ({{ ep.count }}){% endif %}{% else %}{{ ep.error }}{% endif %}
+          </strong>
+        </span>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </div>

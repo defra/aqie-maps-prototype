@@ -18,6 +18,19 @@
     if (urlEl && url) urlEl.textContent = url
   }
 
+  function updateEndpoints(endpoints) {
+    var container = document.getElementById('endpoint-status')
+    if (!container || !Array.isArray(endpoints)) return
+    container.innerHTML = endpoints.map(function (ep) {
+      var label = ep.ok
+        ? 'OK' + (ep.count != null ? ' (' + ep.count + ')' : '')
+        : (ep.error || 'Error')
+      var colour = ep.ok ? 'govuk-tag--green' : 'govuk-tag--red'
+      return '<span style="font-family:monospace;font-size:0.875rem;">' +
+        ep.name + ' <strong class="govuk-tag ' + colour + '">' + label + '</strong></span>'
+    }).join('')
+  }
+
   function poll() {
     fetch('/api/health')
       .then(function (r) { return r.json() })
@@ -25,5 +38,13 @@
       .catch(function () { updateBanner(false) })
   }
 
+  function pollEndpoints() {
+    fetch('/api/endpoints')
+      .then(function (r) { return r.json() })
+      .then(function (data) { updateEndpoints(data) })
+      .catch(function () {})
+  }
+
   setInterval(poll, 3000)
+  setInterval(pollEndpoints, 30000)
 })()

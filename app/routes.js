@@ -8,6 +8,7 @@ const router = govukPrototypeKit.requests.setupRouter()
 
 const {
   checkHealth,
+  checkEndpoints,
   getForecasts,
   getMeasurements,
   getMonitoringStations,
@@ -16,10 +17,11 @@ const {
 
 // Home — landing page with View on a map link
 router.get('/', async (req, res) => {
-  const health = await checkHealth()
+  const [health, endpoints] = await Promise.all([checkHealth(), checkEndpoints()])
   res.render('index.html', {
     backendUrl: health.url,
-    backendConnected: health.connected
+    backendConnected: health.connected,
+    endpoints
   })
 })
 
@@ -36,6 +38,11 @@ router.get('/map', async (req, res) => {
 router.get('/api/health', async (req, res) => {
   const health = await checkHealth()
   res.json(health)
+})
+
+router.get('/api/endpoints', async (req, res) => {
+  const endpoints = await checkEndpoints()
+  res.json(endpoints)
 })
 
 // aqie-back-end data routes — extend these as views are built out
