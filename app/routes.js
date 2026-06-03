@@ -40,8 +40,8 @@ router.get('/api/health', async (req, res) => {
 
 // aqie-back-end data routes — extend these as views are built out
 router.get('/forecasts', async (req, res) => {
-  const data = await getForecasts()
-  res.json(data)
+    const data = await getForecasts()
+    res.json(data)
 })
 
 router.get('/measurements', async (req, res) => {

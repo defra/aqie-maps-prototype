@@ -11,6 +11,7 @@ services:
       PORT: 3000
       NODE_ENV: development
       AQIE_BACK_END_URL: http://aqie-back-end:3001
+      AQIE_FORECAST_API_URL: http://aqie-forecast-api:3002
     networks:
       - cdp-tenant
     volumes:
