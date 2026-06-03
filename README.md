@@ -20,10 +20,14 @@ the [GOV.UK Frontend](https://github.com/alphagov/govuk-frontend).
   - [Environment Variables in the GOV.UK Prototype Kit](#environment-variables-in-the-govuk-prototype-kit)
   - [Secrets](#secrets)
 - [Creating a secret](#creating-a-secret)
+- [Local services](#local-services)
 - [aqie-back-end service](#aqie-back-end-service)
   - [Running locally](#running-locally)
   - [Endpoints used](#endpoints-used)
   - [Deploying to CDP](#deploying-to-cdp)
+- [aqie-forecast-api service](#aqie-forecast-api-service)
+  - [Running locally (forecast-api)](#running-locally-forecast-api)
+  - [Endpoints used (forecast-api)](#endpoints-used-forecast-api)
 - [Docker](#docker)
   - [Docker Compose](#docker-compose)
   - [Production image](#production-image)
@@ -198,9 +202,31 @@ the CDP Portal.
 1. Add a secret on your chosen environment with a `name` and `value` of your choosing
 1. Re-deploy your prototype for the new secrets to be made available to it
 
+## Local services
+
+This prototype depends on two backend services. Both must be running locally via Docker to see real data:
+
+| Service | Port | Data provided |
+| --- | --- | --- |
+| [aqie-back-end](https://github.com/DEFRA/aqie-back-end) | `3001` | Measurements, monitoring stations |
+| [aqie-forecast-api](https://github.com/DEFRA/aqie-forecast-api) | `3002` | Air quality forecasts |
+
+Start them in order (back-end first, so the `cdp-tenant` network is created):
+
+```bash
+# In aqie-back-end/
+docker compose up --build
+
+# In aqie-forecast-api/
+docker compose up --build
+
+# In aqie-maps-prototype/
+docker compose up --build
+```
+
 ## aqie-back-end service
 
-This prototype consumes data from the [aqie-back-end](https://github.com/DEFRA/aqie-back-end) service.
+This prototype consumes measurements and monitoring station data from the [aqie-back-end](https://github.com/DEFRA/aqie-back-end) service.
 You will need a running instance of it to see real data locally — without it the app will still load but
 the homepage will show a **Not Connected** banner.
 
@@ -230,9 +256,9 @@ When running both services via Docker Compose, `AQIE_BACK_END_URL` is automatica
 | Endpoint                   | Description                                                                               |
 | :------------------------- | :---------------------------------------------------------------------------------------- |
 | `GET /health`              | Health check — used by the homepage connectivity banner                                   |
-| `GET /forecasts`           | Air quality forecasts stored in MongoDB (populated by cron 5–10am)                        |
 | `GET /measurements`        | Pollutant measurements stored in MongoDB                                                  |
 | `GET /monitoringStations`  | Cached monitoring station metadata from MongoDB (populated on startup, refreshed every 6 hours) |
+| `GET /monitoringStationInfo` | Detailed monitoring station information |
 
 ### Deploying to CDP
 
@@ -241,6 +267,34 @@ set to the internal URL of the `aqie-back-end` service running in that environme
 
 Add the variable via a pull request to the [cdp-app-config](https://github.com/DEFRA/cdp-app-config) repository.
 See [Environment Variables on CDP](#environment-variables-on-cdp) for step-by-step guidance.
+
+## aqie-forecast-api service
+
+Forecast data is fetched from the [aqie-forecast-api](https://github.com/DEFRA/aqie-forecast-api) service via `AQIE_FORECAST_API_URL`.
+
+### Running locally (forecast-api)
+
+From the `aqie-forecast-api` directory:
+
+```bash
+docker compose up --build
+```
+
+This starts `aqie-forecast-api` on port `3002`. It joins the same `cdp-tenant` Docker network so the prototype can reach it by service name.
+
+Verify it is running:
+
+```bash
+curl http://localhost:3002/forecast | head -c 200
+```
+
+When running via Docker Compose, `AQIE_FORECAST_API_URL` is automatically set to `http://aqie-forecast-api:3002` using Docker's internal networking.
+
+### Endpoints used (forecast-api)
+
+| Endpoint          | Description                                             |
+| :---------------- | :------------------------------------------------------ |
+| `GET /forecast`   | Air quality forecasts (populated by cron 5–10am)        |
 
 ## Docker
 
@@ -255,7 +309,7 @@ The recommended way to run this prototype locally alongside `aqie-back-end`. Bot
 
 > [!IMPORTANT]
 > Start `aqie-back-end` first (via `docker compose up --build` in its directory) so the `cdp-tenant` network exists
-> before this prototype starts.
+> before the other services start. Then start `aqie-forecast-api`, then this prototype.
 
 Build and start:
 
@@ -269,8 +323,8 @@ Stop:
 docker compose down
 ```
 
-The `AQIE_BACK_END_URL` is automatically set to `http://aqie-back-end:3001` inside the container. Other variables
-(e.g. `PASSWORD`) are loaded from your `.env` file — copy [.env.template](./.env.template) to `.env` if you
+`AQIE_BACK_END_URL` and `AQIE_FORECAST_API_URL` are automatically set to the Docker service names inside the container. Other variables
+(e.g. `PASSWORD`, `OS_NAMES_API_KEY`) are loaded from your `.env` file — copy [.env.template](./.env.template) to `.env` if you
 haven't already.
 
 ### Production image
