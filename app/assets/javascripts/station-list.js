@@ -7,9 +7,9 @@
     })
     .then(function (stations) {
       var list = Array.isArray(stations) ? stations
-        : Array.isArray(stations.measurements) ? stations.measurements
-          : Array.isArray(stations.data) ? stations.data
-            : Array.isArray(stations.stations) ? stations.stations
+        : Array.isArray(stations.stations) ? stations.stations
+          : Array.isArray(stations.measurements) ? stations.measurements
+            : Array.isArray(stations.data) ? stations.data
               : Array.isArray(stations.results) ? stations.results
                 : null
       if (!list) {
