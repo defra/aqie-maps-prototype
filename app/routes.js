@@ -9,7 +9,6 @@ const router = govukPrototypeKit.requests.setupRouter()
 const {
   checkHealth,
   getForecasts,
-  getMeasurements,
   getMonitoringStations,
   getMonitoringStationInfo
 } = require('./api/aqieBackEnd')
@@ -42,11 +41,6 @@ router.get('/api/health', async (req, res) => {
 router.get('/forecasts', async (req, res) => {
     const data = await getForecasts()
     res.json(data)
-})
-
-router.get('/measurements', async (req, res) => {
-  const data = await getMeasurements()
-  res.json(data)
 })
 
 router.get('/monitoringStations', async (req, res) => {

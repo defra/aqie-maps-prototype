@@ -16,38 +16,22 @@
   var _mapReady = false
   var _stationList = null
   var _forecastList = null
-  var _measurementsMap = {}   // keyed by localSiteID
   var _selectedId = null
   var _pendingNav = null
 
   var _DAQI_POLLUTANTS = [
-    { label: 'Fine particulate matter (PM2.5)', codes: ['PM25', 'GR25'] },
-    { label: 'Particulate matter (PM10)', codes: ['GE10', 'GR10'] },
+    { label: 'Fine particulate matter (PM2.5)', codes: ['PM25'] },
+    { label: 'Particulate matter (PM10)', codes: ['PM10'] },
     { label: 'Nitrogen dioxide (NO2)', codes: ['NO2'] },
     { label: 'Ozone (O3)', codes: ['O3'] },
     { label: 'Sulphur dioxide (SO2)', codes: ['SO2'] }
   ]
   var _filterState = {
     mode: 'daqi',
-    selected: new Set(['NO2', 'O3', 'SO2', 'PM25', 'GE10', 'GR10', 'GR25'])
+    selected: new Set(['NO2', 'O3', 'SO2', 'PM25', 'PM10'])
   }
   var _plottedIds = new Set()
   var _showInactiveStations = true
-
-  fetch('/measurements')
-    .then(function (response) { return response.ok ? response.json() : null })
-    .then(function (data) {
-      if (!data) return
-      var list = Array.isArray(data) ? data
-        : Array.isArray(data.measurements) ? data.measurements
-          : []
-      list.forEach(function (measurement) {
-        if (measurement.name) _measurementsMap[measurement.name.trim().toLowerCase()] = measurement
-      })
-      // Re-plot now that pollutant data is available for accurate filtering
-      if (_mapReady && _stationList) _plotAllMarkers()
-    })
-    .catch(function () { /* measurements optional */ })
 
   fetch('/forecasts')
     .then(function (response) { return response.ok ? response.json() : null })
@@ -110,7 +94,7 @@
     return null
   }
 
-  // Falls back to visible when measurement data has not yet loaded for a station.
+  // Falls back to visible when station has no pollutant data yet.
   function _stationMatchesFilter(station) {
     if (!_showInactiveStations) {
       var status = (station.stationStatus || station.status || station.siteStatus || '').toLowerCase()
@@ -118,12 +102,9 @@
     }
     if (_filterState.mode === 'other') return true
     if (_filterState.selected.size === 0) return false
-    var stationName = (station.name || '').trim().toLowerCase()
-    var measured = _measurementsMap[stationName]
-    if (!measured) return true  // no data yet — keep station visible
-    var codes = Object.keys(measured.pollutants || {})
-    if (codes.length === 0) return true
-    return codes.some(function (code) { return _filterState.selected.has(code) })
+    var pollutants = station.pollutants || []
+    if (pollutants.length === 0) return true  // no data yet — keep station visible
+    return pollutants.some(function (code) { return _filterState.selected.has(code) })
   }
 
   function _plotAllMarkers() {
@@ -168,9 +149,7 @@
     O3: 'O₃',
     SO2: 'SO₂',
     PM25: 'PM2.5',
-    GE10: 'PM10',   // Gravimetric Equivalent PM10
-    GR10: 'PM10',   // Gravimetric Reference PM10
-    GR25: 'PM2.5'   // Gravimetric Reference PM2.5
+    PM10: 'PM10'
   }
   var _DAQI_BAND = [
     null,
@@ -222,16 +201,16 @@
 
     var rows = []
 
-    // Derive pollutant list from measurements data joined on station name
-    var measured = (_measurementsMap[(station.name || '').trim().toLowerCase()] || {}).pollutants || {}
-    var seen = []
-    Object.keys(_POLLUTANT_LABELS).forEach(function (pollutantCode) {
-      if (measured[pollutantCode] !== undefined) {
-        var label = _POLLUTANT_LABELS[pollutantCode]
+    // Pollutant list comes from the cached monitoringStations data
+    var pollutants = station.pollutants || []
+    if (pollutants.length > 0) {
+      var seen = []
+      pollutants.forEach(function (code) {
+        var label = _POLLUTANT_LABELS[code] || code
         if (seen.indexOf(label) === -1) seen.push(label)
-      }
-    })
-    if (seen.length > 0) rows.push(['Pollutants', seen.join(', ')])
+      })
+      rows.push(['Pollutants', seen.join(', ')])
+    }
 
     if (!isClosed) {
       var forecast = _forecastForStation(station)
@@ -248,19 +227,11 @@
     rows.push(['Local authority', station.localAuthority || 'Not available'])
     if (station.areaType) rows.push(['Site type', station.areaType])
 
-    // startDate comes from the earliest pollutant startDate in measurements data
-    var pollutantDates = Object.keys(measured).map(function (pollutantCode) { return measured[pollutantCode].startDate || '' })
-      .filter(function (dateValue) { return dateValue && dateValue !== 'null' })
-    pollutantDates.sort()
-    var startDate = pollutantDates[0] || ''
-    rows.push(['Start date', startDate ? _formatDate(startDate) : 'Not available'])
+    // openDate is the station establishment date, stored in the monitoringStations cache
+    rows.push(['Start date', station.openDate ? _formatDate(station.openDate) : 'Not available'])
 
     if (isClosed) {
-      var pollutantEndDates = Object.keys(measured).map(function (pollutantCode) { return measured[pollutantCode].endDate || '' })
-        .filter(function (dateValue) { return dateValue && dateValue !== 'null' })
-      pollutantEndDates.sort()
-      var endDate = pollutantEndDates[pollutantEndDates.length - 1] || ''
-      rows.push(['End date', endDate ? _formatDate(endDate) : 'Not available'])
+      rows.push(['End date', station.closeDate ? _formatDate(station.closeDate) : 'Not available'])
     }
 
     var dl = document.getElementById('sp-details')

@@ -1,7 +1,7 @@
 // aqieBackEnd.js
 // Thin wrapper around the aqie-back-end and aqie-forecast-api APIs.
 // Provides helper functions used by routes.js to fetch air quality data
-// (forecasts, measurements, monitoring station info) and check connectivity.
+// (forecasts, monitoring station info) and check connectivity.
 // The backend base URL is configured via the AQIE_BACK_END_URL environment
 // variable, defaulting to http://localhost:3001 for local development.
 // Forecast data is fetched from AQIE_FORECAST_API_URL
@@ -34,10 +34,6 @@ async function getForecasts() {
   return get(forecastApiUrl, '/forecast')
 }
 
-async function getMeasurements() {
-  return get(backendUrl, '/measurements')
-}
-
 async function getMonitoringStations() {
   return get(backendUrl, '/monitoringStations')
 }
@@ -49,7 +45,6 @@ async function getMonitoringStationInfo() {
 module.exports = {
   checkHealth,
   getForecasts,
-  getMeasurements,
   getMonitoringStations,
   getMonitoringStationInfo
 }
